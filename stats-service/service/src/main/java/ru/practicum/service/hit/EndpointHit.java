@@ -18,8 +18,10 @@ public class EndpointHit {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "APP")
-    private String app;
+    @ManyToOne
+    @JoinColumn(name = "APP_ID")
+    private App app;
+
     @Column(name = "URI")
     private String uri;
 

@@ -7,9 +7,9 @@ public class EndpointHitMapper {
         throw new IllegalStateException("Utility class");
     }
 
-    public static EndpointHit toEndpointHit(EndpointHitDto endpointHitDto) {
+    public static EndpointHit toEndpointHit(EndpointHitDto endpointHitDto, App app) {
         return EndpointHit.builder()
-                .app(endpointHitDto.getApp())
+                .app(app)
                 .uri(endpointHitDto.getUri())
                 .ip(endpointHitDto.getIp())
                 .timestamp(endpointHitDto.getTimestamp())

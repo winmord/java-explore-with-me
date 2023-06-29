@@ -9,14 +9,17 @@ import ru.practicum.common_dto.EndpointHitDto;
 @Slf4j
 public class EndpointHitService {
     private final EndpointHitRepository endpointHitRepository;
+    private final AppRepository appRepository;
 
     @Autowired
-    public EndpointHitService(EndpointHitRepository endpointHitRepository) {
+    public EndpointHitService(EndpointHitRepository endpointHitRepository, AppRepository appRepository) {
         this.endpointHitRepository = endpointHitRepository;
+        this.appRepository = appRepository;
     }
 
     public void saveHit(EndpointHitDto endpointHitDto) {
-        EndpointHit endpointHit = endpointHitRepository.save(EndpointHitMapper.toEndpointHit(endpointHitDto));
+        App app = appRepository.save(App.builder().name(endpointHitDto.getApp()).build());
+        EndpointHit endpointHit = endpointHitRepository.save(EndpointHitMapper.toEndpointHit(endpointHitDto, app));
         log.info("Сохранена информация о запросе {}", endpointHit.getId());
     }
 }

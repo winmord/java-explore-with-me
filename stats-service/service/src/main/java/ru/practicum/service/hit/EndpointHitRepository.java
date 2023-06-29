@@ -10,21 +10,23 @@ import java.util.Collection;
 
 @Repository
 public interface EndpointHitRepository extends JpaRepository<EndpointHit, Long> {
-    @Query("select new ru.practicum.common_dto.ViewStatsDto(eh.app, eh.uri, count(eh.ip)) " +
+    @Query("select new ru.practicum.common_dto.ViewStatsDto(ap.name, eh.uri, count(eh.ip)) " +
             "from EndpointHit as eh " +
+            "join App as ap on ap.id = eh.app.id " +
             "where eh.timestamp >= :start " +
             "and eh.timestamp <= :end " +
             "and ((coalesce(:uris, '') = '') or (eh.uri in :uris)) " +
-            "group by eh.app, eh.uri " +
+            "group by ap.name, eh.uri " +
             "order by count(eh.ip) desc")
     Collection<ViewStatsDto> getViewStats(LocalDateTime start, LocalDateTime end, Collection<String> uris);
 
-    @Query("select new ru.practicum.common_dto.ViewStatsDto(eh.app, eh.uri, count(distinct eh.ip)) " +
+    @Query("select new ru.practicum.common_dto.ViewStatsDto(ap.name, eh.uri, count(distinct eh.ip)) " +
             "from EndpointHit as eh " +
+            "join App as ap on ap.id = eh.app.id " +
             "where eh.timestamp >= :start " +
             "and eh.timestamp <= :end " +
             "and ((coalesce(:uris, '') = '') or (eh.uri in :uris)) " +
-            "group by eh.app, eh.uri " +
+            "group by ap.name, eh.uri " +
             "order by count(distinct eh.ip) desc")
     Collection<ViewStatsDto> getViewStatsUnique(LocalDateTime start, LocalDateTime end, Collection<String> uris);
 }

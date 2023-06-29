@@ -8,6 +8,7 @@ import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.web.util.DefaultUriBuilderFactory;
 import ru.practicum.common_dto.EndpointHitDto;
 
+import javax.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.Map;
@@ -23,15 +24,19 @@ public class HitClient extends BaseClient {
         );
     }
 
-    public ResponseEntity<Object> addHit(String app, String uri, String ip, LocalDateTime timestamp) {
+    public ResponseEntity<Object> addHit(String app, String uri, String ip) {
         EndpointHitDto endpointHiDto = EndpointHitDto.builder()
                 .app(app)
                 .uri(uri)
                 .ip(ip)
-                .timestamp(timestamp)
+                .timestamp(LocalDateTime.now())
                 .build();
 
         return post("/hit", endpointHiDto);
+    }
+
+    public ResponseEntity<Object> addHit(HttpServletRequest req) {
+        return addHit(req.getContextPath(), req.getRemoteAddr(), req.getRequestURI());
     }
 
     public ResponseEntity<Object> getViewStats(String start, String end, Collection<String> uris, Boolean unique) {

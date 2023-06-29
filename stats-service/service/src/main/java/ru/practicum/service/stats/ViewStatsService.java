@@ -12,6 +12,7 @@ import java.util.Collections;
 
 @Service
 public class ViewStatsService {
+    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     private final EndpointHitRepository endpointHitRepository;
 
     public ViewStatsService(EndpointHitRepository endpointHitRepository) {
@@ -22,9 +23,8 @@ public class ViewStatsService {
                                              String end,
                                              Collection<String> uris,
                                              boolean unique) throws ValidationException {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-        LocalDateTime startDate = LocalDateTime.parse(start, formatter);
-        LocalDateTime endDate = LocalDateTime.parse(end, formatter);
+        LocalDateTime startDate = LocalDateTime.parse(start, FORMATTER);
+        LocalDateTime endDate = LocalDateTime.parse(end, FORMATTER);
         checkDateValidity(startDate, endDate);
 
         if (uris == null) uris = Collections.emptyList();
