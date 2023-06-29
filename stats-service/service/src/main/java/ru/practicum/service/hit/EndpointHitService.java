@@ -5,6 +5,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ru.practicum.common_dto.EndpointHitDto;
 
+import java.util.Optional;
+
 @Service
 @Slf4j
 public class EndpointHitService {
@@ -18,7 +20,8 @@ public class EndpointHitService {
     }
 
     public void saveHit(EndpointHitDto endpointHitDto) {
-        App app = appRepository.save(App.builder().name(endpointHitDto.getApp()).build());
+        Optional<App> savedApp = appRepository.findByName(endpointHitDto.getApp());
+        App app = savedApp.orElseGet(() -> appRepository.save(App.builder().name(endpointHitDto.getApp()).build()));
         EndpointHit endpointHit = endpointHitRepository.save(EndpointHitMapper.toEndpointHit(endpointHitDto, app));
         log.info("Сохранена информация о запросе {}", endpointHit.getId());
     }
