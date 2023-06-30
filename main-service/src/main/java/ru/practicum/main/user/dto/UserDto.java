@@ -1,10 +1,11 @@
-package ru.practicum.main.admin.user;
+package ru.practicum.main.user.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import javax.validation.constraints.Email;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 
@@ -12,8 +13,13 @@ import javax.validation.constraints.NotNull;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class UserShortDto {
-    private Integer id;
+public class UserDto {
+    private Long id;
+    
+    @NotNull
+    @NotBlank
+    @Email
+    private String email;
 
     @NotNull
     @NotBlank

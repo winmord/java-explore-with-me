@@ -1,4 +1,4 @@
-package ru.practicum.main.admin.user;
+package ru.practicum.main.user.model;
 
 import lombok.*;
 
@@ -14,7 +14,7 @@ import javax.persistence.*;
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    private Long id;
 
     @Column(name = "NAME")
     private String name;

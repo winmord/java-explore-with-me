@@ -1,4 +1,4 @@
-package ru.practicum.main.category;
+package ru.practicum.main.category.model;
 
 import lombok.*;
 
@@ -14,7 +14,7 @@ import javax.persistence.*;
 public class Category {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    private Long id;
 
     @Column(name = "NAME", unique = true)
     private String name;

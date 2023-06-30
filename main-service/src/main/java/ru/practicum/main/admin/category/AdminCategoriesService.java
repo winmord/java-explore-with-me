@@ -2,10 +2,11 @@ package ru.practicum.main.admin.category;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import ru.practicum.main.category.CategoriesRepository;
-import ru.practicum.main.category.Category;
-import ru.practicum.main.category.CategoryDto;
-import ru.practicum.main.category.CategoryMapper;
+import ru.practicum.main.category.repository.CategoriesRepository;
+import ru.practicum.main.category.model.Category;
+import ru.practicum.main.category.dto.CategoryDto;
+import ru.practicum.main.category.mapper.CategoryMapper;
+import ru.practicum.main.category.dto.NewCategoryDto;
 
 @Service
 @Slf4j

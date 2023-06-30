@@ -3,7 +3,8 @@ package ru.practicum.main.admin.category;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import ru.practicum.main.category.CategoryDto;
+import ru.practicum.main.category.dto.CategoryDto;
+import ru.practicum.main.category.dto.NewCategoryDto;
 
 @RestController
 @RequestMapping("/admin/categories")

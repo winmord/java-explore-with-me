@@ -2,6 +2,11 @@ package ru.practicum.main.admin.user;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import ru.practicum.main.user.dto.NewUserRequest;
+import ru.practicum.main.user.dto.UserDto;
+import ru.practicum.main.user.mapper.UserMapper;
+import ru.practicum.main.user.model.User;
+import ru.practicum.main.user.repository.UsersRepository;
 
 import java.util.Collection;
 import java.util.stream.Collectors;
@@ -27,7 +32,7 @@ public class AdminUsersService {
         return UserMapper.toUserDto(user);
     }
 
-    public void deleteUser(Integer catId) {
+    public void deleteUser(Long catId) {
         usersRepository.deleteById(catId);
         log.info("Удалён пользователь {}", catId);
     }

@@ -1,4 +1,4 @@
-package ru.practicum.main.category;
+package ru.practicum.main.category.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -14,7 +14,7 @@ import javax.validation.constraints.NotNull;
 @AllArgsConstructor
 @NoArgsConstructor
 public class CategoryDto {
-    private Integer id;
+    private Long id;
     @NotNull
     @NotBlank
     @Length(min = 1, max = 50)

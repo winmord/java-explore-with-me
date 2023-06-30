@@ -1,9 +1,12 @@
-package ru.practicum.main.category;
+package ru.practicum.main.category.controller;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import ru.practicum.main.category.mapper.CategoryMapper;
+import ru.practicum.main.category.service.CategoriesService;
+import ru.practicum.main.category.dto.CategoryDto;
 
 import java.util.Collection;
 
@@ -23,6 +26,6 @@ public class CategoriesController {
 
     @GetMapping("/{catId}")
     public CategoryDto getCategory(@RequestParam(name = "catId") Integer catId) {
-        return categoriesService.getCategory(catId);
+        return CategoryMapper.toCategoryDto(categoriesService.getCategory(catId));
     }
 }

@@ -2,6 +2,8 @@ package ru.practicum.main.admin.user;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import ru.practicum.main.user.dto.NewUserRequest;
+import ru.practicum.main.user.dto.UserDto;
 
 import java.util.Collection;
 
@@ -26,7 +28,7 @@ public class AdminUsersController {
 
     @DeleteMapping("/{catId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteUser(@RequestParam(name = "catId") Integer catId) {
+    public void deleteUser(@PathVariable(name = "catId") Long catId) {
         adminUsersService.deleteUser(catId);
     }
 }
