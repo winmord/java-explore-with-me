@@ -8,7 +8,6 @@ import ru.practicum.main.category.dto.NewCategoryDto;
 
 @RestController
 @RequestMapping("/admin/categories")
-@Validated
 public class AdminCategoriesController {
     private final AdminCategoriesService adminCategoriesService;
 
@@ -18,20 +17,19 @@ public class AdminCategoriesController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public CategoryDto addNewCategory(@RequestBody NewCategoryDto categoryDto) {
+    public CategoryDto addNewCategory(@Validated @RequestBody NewCategoryDto categoryDto) {
         return adminCategoriesService.addNewCategory(categoryDto);
     }
 
     @DeleteMapping("/{catId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteCategory(@RequestParam(name = "catId") Integer catId) {
+    public void deleteCategory(@PathVariable Long catId) {
         adminCategoriesService.deleteCategory(catId);
     }
 
     @PatchMapping("/{catId}")
-    @ResponseStatus(HttpStatus.CREATED)
-    public CategoryDto updateCategory(@RequestBody CategoryDto categoryDto,
-                                      @RequestParam(name = "catId") Integer catId) {
+    public CategoryDto updateCategory(@Validated @RequestBody CategoryDto categoryDto,
+                                      @PathVariable Long catId) {
         return adminCategoriesService.updateCategory(catId, categoryDto);
     }
 }

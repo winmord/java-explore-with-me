@@ -28,7 +28,7 @@ public class NewEventDto {
     private String annotation;
 
     @NotNull
-    private Integer category;
+    private Long category;
 
     @NotNull
     @NotBlank
@@ -43,9 +43,9 @@ public class NewEventDto {
     @NotNull
     private LocationDto location;
 
-    private Boolean paid;
+    private Boolean paid = false;
 
-    private Integer participantLimit;
+    private Integer participantLimit = 0;
 
-    private Boolean requestModeration;
+    private Boolean requestModeration = true;
 }

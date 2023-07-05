@@ -23,12 +23,9 @@ public class Event {
     @Column(name = "ANNOTATION")
     private String annotation;
 
-    @OneToOne
+    @ManyToOne
     @JoinColumn(name = "CATEGORY_ID")
     private Category category;
-
-    @Column(name = "CONFIRMED_REQUESTS")
-    private Integer confirmedRequests;
 
     @Column(name = "CREATED_ON")
     private LocalDateTime createdOn;
@@ -39,7 +36,7 @@ public class Event {
     @Column(name = "EVENT_DATE")
     private LocalDateTime eventDate;
 
-    @OneToOne
+    @ManyToOne
     @JoinColumn(name = "INITIATOR_ID")
     private User initiator;
 
@@ -60,11 +57,9 @@ public class Event {
     private Boolean requestModeration;
 
     @Column(name = "STATE")
+    @Enumerated(EnumType.STRING)
     private EventState state;
 
     @Column(name = "TITLE")
     private String title;
-
-    @Column(name = "VIEWS")
-    private Integer views;
 }

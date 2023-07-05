@@ -18,19 +18,18 @@ public class AdminCategoriesService {
     }
 
     public CategoryDto addNewCategory(NewCategoryDto categoryDto) {
-        // TODO Обработать уникальность имени
         Category category = categoriesRepository.save(CategoryMapper.toCategory(categoryDto));
         log.info("Добавлена категория с id {}", category.getId());
         return CategoryMapper.toCategoryDto(category);
     }
 
-    public void deleteCategory(Integer catId) {
+    public void deleteCategory(Long catId) {
         // TODO Проверить есть ли зависимые от категории события
         categoriesRepository.deleteById(catId);
         log.info("Удалена категория с id {}", catId);
     }
 
-    public CategoryDto updateCategory(Integer catId,CategoryDto categoryDto) {
+    public CategoryDto updateCategory(Long catId, CategoryDto categoryDto) {
         Category category = categoriesRepository.findById(catId)
                 .orElseThrow(() -> new IllegalArgumentException("Категория не найдена или не существует"));
 

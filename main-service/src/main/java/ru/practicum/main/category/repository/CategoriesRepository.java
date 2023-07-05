@@ -5,6 +5,6 @@ import ru.practicum.main.category.model.Category;
 
 import java.util.Optional;
 
-public interface CategoriesRepository extends JpaRepository<Category, Integer> {
+public interface CategoriesRepository extends JpaRepository<Category, Long> {
     Optional<Category> findByName(String name);
 }

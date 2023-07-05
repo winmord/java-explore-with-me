@@ -1,6 +1,7 @@
 package ru.practicum.main.admin.user;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.main.user.dto.NewUserRequest;
 import ru.practicum.main.user.dto.UserDto;
@@ -17,12 +18,15 @@ public class AdminUsersController {
     }
 
     @GetMapping
-    public Collection<UserDto> getUsers() {
-        return adminUsersService.getUsers();
+    public Collection<UserDto> getUsers(@RequestParam(required = false) Collection<Long> ids,
+                                        @RequestParam(defaultValue = "0") Integer from,
+                                        @RequestParam(defaultValue = "10") Integer size) {
+        return adminUsersService.getUsers(ids, from, size);
     }
 
     @PostMapping
-    public UserDto addUser(NewUserRequest newUserRequest) {
+    @ResponseStatus(HttpStatus.CREATED)
+    public UserDto addUser(@Validated @RequestBody NewUserRequest newUserRequest) {
         return adminUsersService.addUser(newUserRequest);
     }
 
