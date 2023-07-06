@@ -56,9 +56,9 @@ public class UserEventsController {
     }
 
     @PatchMapping("/{eventId}/requests")
-    public Collection<ParticipationRequestDto> updateUserEventRequest(@PathVariable Long userId,
-                                                                      @PathVariable Long eventId,
-                                                                      @RequestBody EventRequestStatusUpdateRequest eventRequestStatusUpdateRequest) {
+    public EventRequestStatusUpdateResult updateUserEventRequest(@PathVariable Long userId,
+                                                                 @PathVariable Long eventId,
+                                                                 @RequestBody EventRequestStatusUpdateRequest eventRequestStatusUpdateRequest) {
         return eventsService.updateUserEventRequest(userId, eventId, eventRequestStatusUpdateRequest);
     }
 }

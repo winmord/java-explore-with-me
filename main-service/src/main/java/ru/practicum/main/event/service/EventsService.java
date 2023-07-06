@@ -29,6 +29,7 @@ import ru.practicum.main.request.dto.ParticipationRequestDto;
 import ru.practicum.main.request.service.UserRequestsService;
 import ru.practicum.main.user.dto.UserShortDto;
 import ru.practicum.main.user.event.EventRequestStatusUpdateRequest;
+import ru.practicum.main.user.event.EventRequestStatusUpdateResult;
 import ru.practicum.main.user.mapper.UserMapper;
 import ru.practicum.main.user.model.User;
 import ru.practicum.main.validation.PagingParametersChecker;
@@ -86,10 +87,12 @@ public class EventsService {
         Collection<EventFullDto> eventFullDtos = new ArrayList<>();
 
         for (Event event : events) {
+            Integer viewsCount = views.get(event.getId());
+            Integer confirmedRequestsCount = confirmedRequests.get(event.getId());
             EventFullDto eventFullDto = EventMapper.toEventFullDto(
                     event,
-                    views.get(event.getId()),
-                    confirmedRequests.get(event.getId())
+                    viewsCount == null ? 0 : viewsCount,
+                    confirmedRequestsCount == null ? 0 : confirmedRequestsCount
             );
 
             eventFullDtos.add(eventFullDto);
@@ -188,14 +191,15 @@ public class EventsService {
                                                String sort,
                                                Integer from,
                                                Integer size) throws ValidationException {
-        LocalDateTime start = rangeStart == null ? null : LocalDateTime.parse(rangeStart);
-        LocalDateTime end = rangeEnd == null ? null : LocalDateTime.parse(rangeEnd);
+        LocalDateTime start = rangeStart == null ? null : LocalDateTime.parse(rangeStart, FORMATTER);
+        LocalDateTime end = rangeEnd == null ? null : LocalDateTime.parse(rangeEnd, FORMATTER);
         checkDateValidity(start, end);
 
         PagingParametersChecker.check(from, size);
+        if ("EVENT_DATE".equals(sort)) sort = "eventDate";
         Pageable pageable = sort == null ? PageRequest.of(from / size, size) : PageRequest.of(from / size, size, Sort.by(sort).descending());
 
-        Collection<Event> events = eventsRepository.getEvents(text, categories, paid, start, end, onlyAvailable, pageable).toList();
+        Collection<Event> events = eventsRepository.getEvents(text.toLowerCase(), categories, paid, start, end, onlyAvailable, pageable).toList();
         return getEventShortDtos(events);
     }
 
@@ -261,6 +265,14 @@ public class EventsService {
         Event event = eventsRepository.findByIdAndInitiatorId(eventId, userId)
                 .orElseThrow(() -> new EntityNotFoundException("Событие " + eventId + " не найдено"));
 
+        if (!event.getInitiator().getId().equals(userId)) {
+            throw new EditingErrorException("Пользователь " + userId + " не является владельцем события " + eventId);
+        }
+
+        if (event.getState().equals(EventState.PUBLISHED)) {
+            throw new EditingErrorException("Изменить можно только отмененные события или события в состоянии ожидания модерации.");
+        }
+
         LocalDateTime updatedEventDate = updateEventUserRequest.getEventDate();
         if (updatedEventDate != null) {
             if (updatedEventDate.isBefore(LocalDateTime.now().plusHours(2)))
@@ -271,10 +283,6 @@ public class EventsService {
 
         UserUpdateEventState updatedUserEventState = updateEventUserRequest.getStateAction();
         if (updatedUserEventState != null) {
-            if (event.getState().equals(EventState.PUBLISHED)) {
-                throw new EditingErrorException("Изменить можно только отмененные события или события в состоянии ожидания модерации.");
-            }
-
             if (updatedUserEventState.equals(UserUpdateEventState.SEND_TO_REVIEW))
                 event.setState(EventState.PENDING);
             if (updatedUserEventState.equals(UserUpdateEventState.CANCEL_REVIEW))
@@ -330,14 +338,38 @@ public class EventsService {
     }
 
     public Collection<ParticipationRequestDto> getUserEventRequests(Long userId, Long eventId) {
-        return null;
+        return userRequestsService.getUserEventRequests(userId, eventId);
     }
 
-    public Collection<ParticipationRequestDto> updateUserEventRequest(
-            Long userId,
-            Long eventId,
-            EventRequestStatusUpdateRequest eventRequestStatusUpdateRequest) {
-        return null;
+    public EventRequestStatusUpdateResult updateUserEventRequest(Long userId,
+                                                                 Long eventId,
+                                                                 EventRequestStatusUpdateRequest eventRequestStatusUpdateRequest) {
+        return userRequestsService.updateUserEventRequest(userId, eventId, eventRequestStatusUpdateRequest);
+    }
+
+    public Collection<EventShortDto> getEventShortDtos(Collection<Event> events) {
+        Map<Long, Integer> views = getViews(events);
+        Map<Long, Integer> confirmedRequests = userRequestsService.getConfirmedRequests(events);
+
+        Collection<EventShortDto> eventShortDtos = new ArrayList<>();
+
+        for (Event event : events) {
+            CategoryDto categoryDto = CategoryMapper.toCategoryDto(event.getCategory());
+            UserShortDto userShortDto = UserMapper.toUserShortDto(event.getInitiator());
+            EventShortDto eventShortDto = EventMapper.toEventShortDto(
+                    event,
+                    categoryDto,
+                    userShortDto,
+                    views.get(event.getId()),
+                    confirmedRequests.get(event.getId())
+            );
+
+            eventShortDtos.add(eventShortDto);
+        }
+
+        log.info("Запрошено {} событий", eventShortDtos.size());
+
+        return eventShortDtos;
     }
 
     private Map<Long, Integer> getViews(Collection<Event> events) {
@@ -380,30 +412,5 @@ public class EventsService {
         if (start != null && end != null && start.isAfter(end)) {
             throw new ValidationException("Start must be before end");
         }
-    }
-
-    private Collection<EventShortDto> getEventShortDtos(Collection<Event> events) {
-        Map<Long, Integer> views = getViews(events);
-        Map<Long, Integer> confirmedRequests = userRequestsService.getConfirmedRequests(events);
-
-        Collection<EventShortDto> eventShortDtos = new ArrayList<>();
-
-        for (Event event : events) {
-            CategoryDto categoryDto = CategoryMapper.toCategoryDto(event.getCategory());
-            UserShortDto userShortDto = UserMapper.toUserShortDto(event.getInitiator());
-            EventShortDto eventShortDto = EventMapper.toEventShortDto(
-                    event,
-                    categoryDto,
-                    userShortDto,
-                    views.get(event.getId()),
-                    confirmedRequests.get(event.getId())
-            );
-
-            eventShortDtos.add(eventShortDto);
-        }
-
-        log.info("Запрошено {} событий", eventShortDtos.size());
-
-        return eventShortDtos;
     }
 }

@@ -34,7 +34,7 @@ public interface EventsRepository extends JpaRepository<Event, Long> {
 
     @Query("select ev from " +
             "Event as ev " +
-            "where (:text is null) or ((lower(ev.annotation) like '%'+lower(:text)+'%') or (ev.description like '%'+lower(:text)+'%')) " +
+            "where (:text is null) or ((lower(ev.annotation) like '%'+lower(:text)+'%') or (lower(ev.description) like '%'+lower(:text)+'%')) " +
             "and (:categories is null or ev.category.id in :categories) " +
             "and (:paid is null or ev.paid = :paid) " +
             "and (:start is null or ev.eventDate > :start) " +

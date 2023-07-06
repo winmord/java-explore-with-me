@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
+import javax.xml.bind.ValidationException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.time.LocalDateTime;
@@ -22,6 +23,18 @@ public class ErrorHandler {
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ApiError validationException(final MethodArgumentTypeMismatchException exception) {
+        return ApiError.builder()
+                .errors(getStackTrace(exception))
+                .message(exception.getMessage())
+                .reason("Incorrectly made request.")
+                .status(HttpStatus.BAD_REQUEST.name())
+                .timestamp(LocalDateTime.now().format(FORMATTER))
+                .build();
+    }
+
+    @ExceptionHandler(ValidationException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ApiError vException(final ValidationException exception) {
         return ApiError.builder()
                 .errors(getStackTrace(exception))
                 .message(exception.getMessage())
@@ -59,6 +72,7 @@ public class ErrorHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ApiError requiredParameterException(final MissingServletRequestParameterException exception) {
         return ApiError.builder()
+                .errors(getStackTrace(exception))
                 .message(exception.getMessage())
                 .reason("Incorrectly made request.")
                 .status(HttpStatus.BAD_REQUEST.name())
@@ -72,6 +86,7 @@ public class ErrorHandler {
     @ResponseStatus(HttpStatus.CONFLICT)
     public ApiError requiredParameterException(final RuntimeException exception) {
         return ApiError.builder()
+                .errors(getStackTrace(exception))
                 .message(exception.getMessage())
                 .reason("For the requested operation the conditions are not met.")
                 .status(HttpStatus.FORBIDDEN.name())

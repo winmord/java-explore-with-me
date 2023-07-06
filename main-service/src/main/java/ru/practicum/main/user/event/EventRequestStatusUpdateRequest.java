@@ -14,6 +14,5 @@ import java.util.Collection;
 @NoArgsConstructor
 public class EventRequestStatusUpdateRequest {
     private Collection<Long> requestIds;
-
     private EventUpdateRequestStatus status;
 }

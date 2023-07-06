@@ -13,7 +13,7 @@ import java.util.Collection;
 @AllArgsConstructor
 @NoArgsConstructor
 public class UpdateCompilationRequest {
-    private Collection<Integer> events;
+    private Collection<Long> events;
     private Boolean pinned;
     @Length(min = 1, max = 50)
     private String title;
