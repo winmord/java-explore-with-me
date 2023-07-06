@@ -34,13 +34,12 @@ public interface EventsRepository extends JpaRepository<Event, Long> {
 
     @Query("select ev from " +
             "Event as ev " +
-            "where (:text is null) or ((lower(ev.annotation) like '%'+lower(:text)+'%') or (lower(ev.description) like '%'+lower(:text)+'%')) " +
+            "where (:text is null) or ((lower(ev.annotation) like %:text%) or (lower(ev.description) like %:text%)) " +
             "and (:categories is null or ev.category.id in :categories) " +
             "and (:paid is null or ev.paid = :paid) " +
             "and (:start is null or ev.eventDate > :start) " +
-            "and (:end is null or ev.eventDate < :end) " +
-            "and (:onlyAvailable is null or (true = :onlyAvailable and ev.participantLimit > 0)) " +
-            "and true = :onlyAvailable")
+            "and (:end is null or ev.eventDate < :end)" +
+            "and (false = :onlyAvailable or (true = :onlyAvailable and ev.participantLimit > 0))")
     Page<Event> getEvents(String text,
                           Collection<Long> categories,
                           Boolean paid,

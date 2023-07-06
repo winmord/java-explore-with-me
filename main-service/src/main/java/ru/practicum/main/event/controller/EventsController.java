@@ -6,6 +6,7 @@ import ru.practicum.main.event.dto.EventFullDto;
 import ru.practicum.main.event.dto.EventShortDto;
 import ru.practicum.main.event.service.EventsService;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.xml.bind.ValidationException;
 import java.util.Collection;
 
@@ -33,7 +34,7 @@ public class EventsController {
     }
 
     @GetMapping("/{id}")
-    public EventFullDto getEvent(@PathVariable Long id) {
-        return eventsService.getEvent(id);
+    public EventFullDto getEvent(@PathVariable Long id, HttpServletRequest request) {
+        return eventsService.getEvent(id, request);
     }
 }

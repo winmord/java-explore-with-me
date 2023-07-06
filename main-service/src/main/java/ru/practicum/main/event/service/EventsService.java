@@ -34,6 +34,7 @@ import ru.practicum.main.user.mapper.UserMapper;
 import ru.practicum.main.user.model.User;
 import ru.practicum.main.validation.PagingParametersChecker;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.xml.bind.ValidationException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -199,11 +200,12 @@ public class EventsService {
         if ("EVENT_DATE".equals(sort)) sort = "eventDate";
         Pageable pageable = sort == null ? PageRequest.of(from / size, size) : PageRequest.of(from / size, size, Sort.by(sort).descending());
 
-        Collection<Event> events = eventsRepository.getEvents(text.toLowerCase(), categories, paid, start, end, onlyAvailable, pageable).toList();
+        if (text != null) text = text.toLowerCase();
+        Collection<Event> events = eventsRepository.getEvents(text, categories, paid, start, end, onlyAvailable, pageable).toList();
         return getEventShortDtos(events);
     }
 
-    public EventFullDto getEvent(Long id) {
+    public EventFullDto getEvent(Long id, HttpServletRequest request) {
         Event event = eventsRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Событие " + id + " не найдено"));
 
@@ -211,9 +213,9 @@ public class EventsService {
             throw new EntityNotFoundException("Событие " + id + " не опубликовано.");
         }
 
+        hitClient.addHit(request);
         Map<Long, Integer> views = getViews(List.of(event));
         Map<Long, Integer> confirmedRequests = userRequestsService.getConfirmedRequests(List.of(event));
-
 
         return EventMapper.toEventFullDto(
                 event,

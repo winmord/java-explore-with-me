@@ -112,9 +112,13 @@ public class UserRequestsService {
 
     public Collection<ParticipationRequestDto> getUserEventRequests(Long userId, Long eventId) {
         checkUserExists(userId);
-        checkEventExists(eventId);
+        Event event = checkEventExists(eventId);
 
-        Collection<Request> requests = requestsRepository.findAllByRequesterIdAndEventId(userId, eventId);
+        if (!event.getInitiator().getId().equals(userId)) {
+            throw new EditingErrorException("Пользователь " + userId + " не является владельцем события " + eventId);
+        }
+
+        Collection<Request> requests = requestsRepository.findAllByEventId(eventId);
 
         return requests.stream()
                 .map(RequestsMapper::toParticipationRequestDto)
@@ -131,7 +135,7 @@ public class UserRequestsService {
             throw new EditingErrorException("Пользователь " + userId + " не является владельцем события " + eventId);
         }
 
-        Collection<Request> requests = requestsRepository.findAllByRequesterIdAndEventIdAndIdIn(userId, eventId, eventRequestStatusUpdateRequest.getRequestIds());
+        Collection<Request> requests = requestsRepository.findAllByIdIn(eventRequestStatusUpdateRequest.getRequestIds());
 
         for (Request request : requests) {
             if (!RequestStatus.PENDING.equals(request.getStatus())) {
@@ -141,11 +145,16 @@ public class UserRequestsService {
             EventUpdateRequestStatus updateStatus = eventRequestStatusUpdateRequest.getStatus();
             if (EventUpdateRequestStatus.CONFIRMED.equals(updateStatus)) {
                 request.setStatus(RequestStatus.CONFIRMED);
+                requestsRepository.save(request);
                 eventRequestStatusUpdateResult.getConfirmedRequests().add(RequestsMapper.toParticipationRequestDto(request));
             }
 
             if (EventUpdateRequestStatus.REJECTED.equals(updateStatus)) {
+                if (RequestStatus.CONFIRMED.equals(request.getStatus())) {
+                    throw new EditingErrorException("Нельзя отменить уже подтверждённый запрос.");
+                }
                 request.setStatus(RequestStatus.REJECTED);
+                requestsRepository.save(request);
                 eventRequestStatusUpdateResult.getRejectedRequests().add(RequestsMapper.toParticipationRequestDto(request));
             }
         }

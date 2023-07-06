@@ -11,9 +11,9 @@ import java.util.Collection;
 @Repository
 public interface RequestsRepository extends JpaRepository<Request, Long> {
     Collection<Request> findAllByRequesterId(Long requesterId);
-
     Collection<Request> findAllByRequesterIdAndEventId(Long requesterId, Long eventId);
-    Collection<Request> findAllByRequesterIdAndEventIdAndIdIn(Long requesterId, Long eventId, Collection<Long> ids);
+    Collection<Request> findAllByEventId(Long eventId);
+    Collection<Request> findAllByIdIn(Collection<Long> ids);
 
     @Query("select new ru.practicum.main.request.model.RequestInfo(req.event.id, count(req.id)) " +
             "from Request as req " +

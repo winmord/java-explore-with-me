@@ -6,7 +6,10 @@ import ru.practicum.main.request.enums.RequestStatus;
 import ru.practicum.main.request.model.Request;
 import ru.practicum.main.user.model.User;
 
+import java.time.format.DateTimeFormatter;
+
 public class RequestsMapper {
+    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
     private RequestsMapper() {
         throw new IllegalStateException("Utility class");
     }
@@ -17,15 +20,7 @@ public class RequestsMapper {
                 .event(request.getEvent().getId())
                 .requester(request.getRequester().getId())
                 .status(request.getStatus().toString())
-                .created(request.getCreated())
-                .build();
-    }
-
-    public static Request toRequest(ParticipationRequestDto participationRequestDto, User requester, Event event) {
-        return Request.builder()
-                .requester(requester)
-                .event(event)
-                .status(RequestStatus.valueOf(participationRequestDto.getStatus()))
+                .created(request.getCreated().format(FORMATTER))
                 .build();
     }
 }

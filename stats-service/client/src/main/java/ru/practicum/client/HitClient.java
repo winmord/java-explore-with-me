@@ -38,7 +38,7 @@ public class HitClient extends BaseClient {
     }
 
     public ResponseEntity<Object> addHit(HttpServletRequest req) {
-        return addHit(req.getContextPath(), req.getRemoteAddr(), req.getRequestURI());
+        return addHit(req.getContextPath(), req.getRequestURI(), req.getRemoteAddr());
     }
 
     public ResponseEntity<Object> getViewStats(String start, String end, Collection<String> uris, Boolean unique) {
