@@ -1,6 +1,7 @@
 package ru.practicum.main.event.model;
 
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 import ru.practicum.main.user.model.User;
 import ru.practicum.main.category.model.Category;
 import ru.practicum.main.event.enums.EventState;
@@ -27,7 +28,7 @@ public class Event {
     @JoinColumn(name = "CATEGORY_ID")
     private Category category;
 
-    @Column(name = "CREATED_ON")
+    @CreationTimestamp
     private LocalDateTime createdOn;
 
     @Column(name = "DESCRIPTION")

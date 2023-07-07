@@ -1,10 +1,7 @@
 package ru.practicum.main.request.mapper;
 
-import ru.practicum.main.event.model.Event;
 import ru.practicum.main.request.dto.ParticipationRequestDto;
-import ru.practicum.main.request.enums.RequestStatus;
 import ru.practicum.main.request.model.Request;
-import ru.practicum.main.user.model.User;
 
 import java.time.format.DateTimeFormatter;
 

@@ -97,7 +97,13 @@ public class ErrorHandler {
     @ExceptionHandler
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ApiError handleException(final Throwable exception) {
-        return ApiError.builder().build();
+        return ApiError.builder()
+                .errors(getExceptionMessage(exception))
+                .message(exception.getMessage())
+                .reason("Internal server error.")
+                .status(HttpStatus.INTERNAL_SERVER_ERROR.name())
+                .timestamp(LocalDateTime.now().format(FORMATTER))
+                .build();
     }
 
     private String getStackTrace(Exception exception) {
@@ -110,5 +116,12 @@ public class ErrorHandler {
     private String getMethodArgumentNotValidExceptionMessage(MethodArgumentNotValidException exception) {
         return String.format("Field: %s. Error: %s", Objects.requireNonNull(exception.getFieldError()).getField(),
                 exception.getFieldError().getDefaultMessage());
+    }
+
+    private String getExceptionMessage(Throwable exception) {
+        StringWriter sw = new StringWriter();
+        PrintWriter pw = new PrintWriter(sw);
+        exception.printStackTrace(pw);
+        return sw.toString();
     }
 }

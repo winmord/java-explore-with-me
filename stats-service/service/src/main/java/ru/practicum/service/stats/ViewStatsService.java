@@ -1,5 +1,6 @@
 package ru.practicum.service.stats;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.practicum.common_dto.ViewStatsDto;
 import ru.practicum.service.hit.EndpointHitRepository;
@@ -11,6 +12,7 @@ import java.util.Collection;
 import java.util.Collections;
 
 @Service
+@Slf4j
 public class ViewStatsService {
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     private final EndpointHitRepository endpointHitRepository;
@@ -30,7 +32,11 @@ public class ViewStatsService {
         if (uris == null) uris = Collections.emptyList();
         if (unique) return endpointHitRepository.getViewStatsUnique(startDate, endDate, uris);
 
-        return endpointHitRepository.getViewStats(startDate, endDate, uris);
+        Collection<ViewStatsDto> viewStatsDtos = endpointHitRepository.getViewStats(startDate, endDate, uris);
+
+        log.info("Запрошено {} просмотров", viewStatsDtos.size());
+
+        return viewStatsDtos;
     }
 
     private void checkDateValidity(LocalDateTime start, LocalDateTime end) throws ValidationException {

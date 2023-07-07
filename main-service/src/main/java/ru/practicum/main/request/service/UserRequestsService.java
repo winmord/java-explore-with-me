@@ -21,6 +21,7 @@ import ru.practicum.main.user.repository.UsersRepository;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -65,8 +66,13 @@ public class UserRequestsService {
         }
 
         RequestStatus status = RequestStatus.PENDING;
-        if (event.getParticipantLimit().equals(0) || !event.getRequestModeration()) {
+        if (event.getParticipantLimit().equals(0) || Boolean.TRUE.equals(!event.getRequestModeration())) {
             status = RequestStatus.CONFIRMED;
+        }
+
+        int confirmedRequests = getConfirmedRequests(List.of(event)).getOrDefault(eventId, 0) + 1;
+        if (event.getParticipantLimit() != 0 && confirmedRequests > event.getParticipantLimit()) {
+            throw new EditingErrorException("Превышено ограничение на количество участников в событии " + eventId);
         }
 
         Request request = Request.builder()
@@ -74,6 +80,8 @@ public class UserRequestsService {
                 .event(event)
                 .status(status)
                 .build();
+
+        log.info("Создан запрос {}", request.getId());
 
         return RequestsMapper.toParticipationRequestDto(requestsRepository.save(request));
     }
@@ -89,6 +97,8 @@ public class UserRequestsService {
         }
 
         request.setStatus(RequestStatus.CANCELED);
+
+        log.info("Отменён запрос {}", request.getId());
 
         return RequestsMapper.toParticipationRequestDto(requestsRepository.save(request));
     }
@@ -107,6 +117,8 @@ public class UserRequestsService {
             confirmedRequests.put(requestInfo.getEventId(), requestInfo.getConfirmedRequestsCount().intValue());
         }
 
+        log.info("Запрошено {} подтверждённых запросов", confirmedRequests.size());
+
         return confirmedRequests;
     }
 
@@ -119,6 +131,8 @@ public class UserRequestsService {
         }
 
         Collection<Request> requests = requestsRepository.findAllByEventId(eventId);
+
+        log.info("Запрошено {} запросов", requests.size());
 
         return requests.stream()
                 .map(RequestsMapper::toParticipationRequestDto)
@@ -133,6 +147,11 @@ public class UserRequestsService {
 
         if (!event.getInitiator().getId().equals(userId)) {
             throw new EditingErrorException("Пользователь " + userId + " не является владельцем события " + eventId);
+        }
+
+        int confirmedRequests = getConfirmedRequests(List.of(event)).getOrDefault(eventId, 0) + 1;
+        if (event.getParticipantLimit() != 0 && confirmedRequests > event.getParticipantLimit()) {
+            throw new EditingErrorException("Превышено ограничение на количество участников в событии " + eventId);
         }
 
         Collection<Request> requests = requestsRepository.findAllByIdIn(eventRequestStatusUpdateRequest.getRequestIds());
@@ -158,6 +177,8 @@ public class UserRequestsService {
                 eventRequestStatusUpdateResult.getRejectedRequests().add(RequestsMapper.toParticipationRequestDto(request));
             }
         }
+
+        log.info("Обновлен запрос {}", eventId);
 
         return eventRequestStatusUpdateResult;
     }

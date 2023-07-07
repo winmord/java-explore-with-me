@@ -29,7 +29,7 @@ public class EventFullDto {
     @NotNull
     private CategoryDto category;
 
-    private Integer confirmedRequests;
+    private Integer confirmedRequests = 0;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createdOn;

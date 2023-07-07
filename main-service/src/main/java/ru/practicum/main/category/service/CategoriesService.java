@@ -27,10 +27,13 @@ public class CategoriesService {
         PagingParametersChecker.check(from, size);
         Pageable pageable = PageRequest.of(from / size, size);
 
-        return categoriesRepository.findAll(pageable)
+        Collection<CategoryDto> categoryDtos = categoriesRepository.findAll(pageable)
                 .stream()
                 .map(CategoryMapper::toCategoryDto)
                 .collect(Collectors.toList());
+
+        log.info("Запрошено {} категорий.", categoryDtos.size());
+        return categoryDtos;
     }
 
     public Category getCategory(Long catId) {

@@ -7,14 +7,18 @@ import ru.practicum.main.category.model.Category;
 import ru.practicum.main.category.dto.CategoryDto;
 import ru.practicum.main.category.mapper.CategoryMapper;
 import ru.practicum.main.category.dto.NewCategoryDto;
+import ru.practicum.main.error.EditingErrorException;
+import ru.practicum.main.event.repository.EventsRepository;
 
 @Service
 @Slf4j
 public class AdminCategoriesService {
     private final CategoriesRepository categoriesRepository;
+    private final EventsRepository eventsRepository;
 
-    public AdminCategoriesService(CategoriesRepository categoriesRepository) {
+    public AdminCategoriesService(CategoriesRepository categoriesRepository, EventsRepository eventsRepository) {
         this.categoriesRepository = categoriesRepository;
+        this.eventsRepository = eventsRepository;
     }
 
     public CategoryDto addNewCategory(NewCategoryDto categoryDto) {
@@ -24,7 +28,10 @@ public class AdminCategoriesService {
     }
 
     public void deleteCategory(Long catId) {
-        // TODO Проверить есть ли зависимые от категории события
+        if (!eventsRepository.findAllByCategoryId(catId).isEmpty()) {
+            throw new EditingErrorException("Существуют связанные с категорией события.");
+        }
+
         categoriesRepository.deleteById(catId);
         log.info("Удалена категория с id {}", catId);
     }

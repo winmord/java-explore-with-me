@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS events
     paid               BOOLEAN                                 NOT NULL,
     participant_limit  BIGINT                                  NOT NULL,
     published_on       TIMESTAMP WITHOUT TIME ZONE             ,
-    request_moderation BOOLEAN                                 NOT NULL DEFAULT TRUE,
+    request_moderation BOOLEAN                                 DEFAULT TRUE,
     state              VARCHAR(50)                             NOT NULL,
     title              TEXT                                    NOT NULL,
     CONSTRAINT pk_events PRIMARY KEY (id),

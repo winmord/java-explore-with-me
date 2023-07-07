@@ -8,7 +8,6 @@ import org.springframework.stereotype.Repository;
 import ru.practicum.main.event.enums.EventState;
 import ru.practicum.main.event.model.Event;
 
-import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.Optional;
 
@@ -18,18 +17,16 @@ public interface EventsRepository extends JpaRepository<Event, Long> {
 
     Optional<Event> findByIdAndInitiatorId(Long eventId, Long userId);
 
+    Collection<Event> findAllByCategoryId(Long categoryId);
+
     @Query("select ev " +
             "from Event as ev " +
             "where (:users is null or ev.initiator.id in :users) " +
             "and (:states is null or ev.state in :states) " +
-            "and (:categories is null or ev.category.id in :categories) " +
-            "and (:start is null or ev.eventDate > :start) " +
-            "and (:end is null or ev.eventDate < :end)")
+            "and (:categories is null or ev.category.id in :categories)")
     Page<Event> getEvents(Collection<Long> users,
                           Collection<EventState> states,
                           Collection<Long> categories,
-                          LocalDateTime start,
-                          LocalDateTime end,
                           Pageable pageable);
 
     @Query("select ev from " +
@@ -37,14 +34,12 @@ public interface EventsRepository extends JpaRepository<Event, Long> {
             "where (:text is null) or ((lower(ev.annotation) like %:text%) or (lower(ev.description) like %:text%)) " +
             "and (:categories is null or ev.category.id in :categories) " +
             "and (:paid is null or ev.paid = :paid) " +
-            "and (:start is null or ev.eventDate > :start) " +
-            "and (:end is null or ev.eventDate < :end)" +
+            "and (ev.eventDate is null or ev.eventDate is not null) " +
             "and (false = :onlyAvailable or (true = :onlyAvailable and ev.participantLimit > 0))")
     Page<Event> getEvents(String text,
                           Collection<Long> categories,
                           Boolean paid,
-                          LocalDateTime start,
-                          LocalDateTime end,
+
                           Boolean onlyAvailable,
                           Pageable pageable);
 }

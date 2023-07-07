@@ -1,5 +1,6 @@
 package ru.practicum.main.compilation.service;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -19,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 
 @Service
+@Slf4j
 public class CompilationsService {
     private final CompilationsRepository compilationsRepository;
     private final EventsRepository eventsRepository;
@@ -34,11 +36,18 @@ public class CompilationsService {
         Collection<Event> events = eventsRepository.findAllById(newCompilationDto.getEvents());
         Compilation compilation = compilationsRepository.save(CompilationsMapper.toCompilation(newCompilationDto, events));
 
+        log.info("Создана подборка {}", compilation.getId());
+
         return CompilationsMapper.toCompilationDto(compilation, eventsService.getEventShortDtos(events));
     }
 
     public void deleteCompilation(Long compId) {
+        if (compilationsRepository.findById(compId).isEmpty()) {
+            throw new EntityNotFoundException("Подборка " + compId + "не найдена");
+        }
+
         compilationsRepository.deleteById(compId);
+        log.info("Удалена подборка {}", compId);
     }
 
     public CompilationDto updateCompilation(Long compId, UpdateCompilationRequest updateCompilationRequest) {
@@ -59,6 +68,8 @@ public class CompilationsService {
 
         Compilation updatedCompilation = compilationsRepository.save(compilation);
 
+        log.info("Обновлена подборка {}", compId);
+
         return CompilationsMapper.toCompilationDto(updatedCompilation,
                 eventsService.getEventShortDtos(updatedCompilation.getEvents()));
     }
@@ -75,12 +86,16 @@ public class CompilationsService {
             compilationDtos.add(compilationDto);
         }
 
+        log.info("Запрошено {} подборок", compilationDtos.size());
+
         return compilationDtos;
     }
 
     public CompilationDto getCompilation(Long compId) {
         Compilation compilation = compilationsRepository.findById(compId)
                 .orElseThrow(() -> new EntityNotFoundException("Подборка " + compId + " не найдена."));
+        log.info("Запрошена подборка {}", compId);
+
         return CompilationsMapper.toCompilationDto(compilation,
                 eventsService.getEventShortDtos(compilation.getEvents()));
     }

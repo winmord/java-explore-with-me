@@ -27,7 +27,7 @@ public class EventShortDto {
     @NotNull
     private CategoryDto category;
 
-    private Integer confirmedRequests;
+    private Integer confirmedRequests = 0;
 
     @FutureOrPresent
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
