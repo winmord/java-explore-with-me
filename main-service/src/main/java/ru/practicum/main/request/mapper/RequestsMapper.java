@@ -7,6 +7,7 @@ import java.time.format.DateTimeFormatter;
 
 public class RequestsMapper {
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+
     private RequestsMapper() {
         throw new IllegalStateException("Utility class");
     }
