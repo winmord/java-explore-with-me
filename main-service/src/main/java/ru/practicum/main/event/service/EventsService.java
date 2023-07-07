@@ -39,7 +39,6 @@ import javax.xml.bind.ValidationException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -82,9 +81,7 @@ public class EventsService {
         PagingParametersChecker.check(from, size);
         Pageable pageable = PageRequest.of(from / size, size);
 
-        Collection<Event> events = eventsRepository.getEvents(users, states, categories, pageable).toList();
-        events = filterByStart(events, start);
-        events = filterByEnd(events, end);
+        Collection<Event> events = eventsRepository.getEvents(users, states, categories, start, end, pageable).toList();
 
         Map<Long, Integer> views = getViews(events);
         Map<Long, Integer> confirmedRequests = userRequestsService.getConfirmedRequests(events);
@@ -100,7 +97,9 @@ public class EventsService {
                     confirmedRequestsCount
             );
 
-            eventFullDtos.add(eventFullDto);
+            if (eventFullDto != null) {
+                eventFullDtos.add(eventFullDto);
+            }
         }
 
         log.info("Запрошено {} событий", eventFullDtos.size());
@@ -206,9 +205,7 @@ public class EventsService {
         Pageable pageable = sort == null ? PageRequest.of(from / size, size) : PageRequest.of(from / size, size, Sort.by(sort).descending());
 
         if (text != null) text = text.toLowerCase();
-        Collection<Event> events = eventsRepository.getEvents(text, categories, paid, onlyAvailable, pageable).toList();
-        events = filterByStart(events, start);
-        events = filterByEnd(events, end);
+        Collection<Event> events = eventsRepository.getEvents(text, categories, paid, onlyAvailable, start, end, pageable).toList();
 
         hitClient.addHit(request);
 
@@ -424,21 +421,5 @@ public class EventsService {
         if (start != null && end != null && start.isAfter(end)) {
             throw new ValidationException("Start must be before end");
         }
-    }
-
-    private Collection<Event> filterByStart(Collection<Event> events, LocalDateTime start) {
-        if (start != null) {
-            return events.stream().filter(event -> event.getEventDate().isAfter(start)).collect(Collectors.toList());
-        }
-
-        return events;
-    }
-
-    private Collection<Event> filterByEnd(Collection<Event> events, LocalDateTime end) {
-        if (end != null) {
-            return events.stream().filter(event -> event.getEventDate().isBefore(end)).collect(Collectors.toList());
-        }
-
-        return events;
     }
 }
