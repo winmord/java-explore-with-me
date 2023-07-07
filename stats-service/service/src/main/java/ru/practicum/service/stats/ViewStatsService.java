@@ -25,6 +25,7 @@ public class ViewStatsService {
                                              String end,
                                              Collection<String> uris,
                                              boolean unique) throws ValidationException {
+
         LocalDateTime startDate = LocalDateTime.parse(start, FORMATTER);
         LocalDateTime endDate = LocalDateTime.parse(end, FORMATTER);
         checkDateValidity(startDate, endDate);
