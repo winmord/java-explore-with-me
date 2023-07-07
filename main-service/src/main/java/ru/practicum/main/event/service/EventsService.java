@@ -195,7 +195,8 @@ public class EventsService {
                                                Boolean onlyAvailable,
                                                String sort,
                                                Integer from,
-                                               Integer size) throws ValidationException {
+                                               Integer size,
+                                               HttpServletRequest request) throws ValidationException {
         LocalDateTime start = rangeStart == null ? null : LocalDateTime.parse(rangeStart, FORMATTER);
         LocalDateTime end = rangeEnd == null ? null : LocalDateTime.parse(rangeEnd, FORMATTER);
         checkDateValidity(start, end);
@@ -208,6 +209,8 @@ public class EventsService {
         Collection<Event> events = eventsRepository.getEvents(text, categories, paid, onlyAvailable, pageable).toList();
         events = filterByStart(events, start);
         events = filterByEnd(events, end);
+
+        hitClient.addHit(request);
 
         return getEventShortDtos(events);
     }
