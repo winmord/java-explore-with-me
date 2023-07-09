@@ -5,24 +5,19 @@ import org.springframework.stereotype.Service;
 import ru.practicum.main.error.EditingErrorException;
 import ru.practicum.main.error.EntityNotFoundException;
 import ru.practicum.main.event.enums.EventState;
-import ru.practicum.main.event.enums.EventUpdateRequestStatus;
 import ru.practicum.main.event.model.Event;
 import ru.practicum.main.event.repository.EventsRepository;
 import ru.practicum.main.request.dto.ParticipationRequestDto;
 import ru.practicum.main.request.enums.RequestStatus;
 import ru.practicum.main.request.mapper.RequestsMapper;
 import ru.practicum.main.request.model.Request;
-import ru.practicum.main.request.model.RequestInfo;
 import ru.practicum.main.request.repository.RequestsRepository;
-import ru.practicum.main.user.event.EventRequestStatusUpdateRequest;
-import ru.practicum.main.user.event.EventRequestStatusUpdateResult;
+import ru.practicum.main.stat.StatService;
 import ru.practicum.main.user.model.User;
 import ru.practicum.main.user.repository.UsersRepository;
 
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -32,12 +27,15 @@ public class UserRequestsService {
     private final UsersRepository usersRepository;
     private final EventsRepository eventsRepository;
 
+    private final StatService statService;
+
     public UserRequestsService(RequestsRepository requestsRepository,
                                UsersRepository usersRepository,
-                               EventsRepository eventsRepository) {
+                               EventsRepository eventsRepository, StatService statService) {
         this.requestsRepository = requestsRepository;
         this.usersRepository = usersRepository;
         this.eventsRepository = eventsRepository;
+        this.statService = statService;
     }
 
     public Collection<ParticipationRequestDto> getRequests(Long userId) {
@@ -70,7 +68,7 @@ public class UserRequestsService {
             status = RequestStatus.CONFIRMED;
         }
 
-        int confirmedRequests = getConfirmedRequests(List.of(event)).getOrDefault(eventId, 0) + 1;
+        int confirmedRequests = statService.getConfirmedRequests(List.of(event)).getOrDefault(eventId, 0) + 1;
         if (event.getParticipantLimit() != 0 && confirmedRequests > event.getParticipantLimit()) {
             throw new EditingErrorException("Превышено ограничение на количество участников в событии " + eventId);
         }
@@ -101,86 +99,6 @@ public class UserRequestsService {
         log.info("Отменён запрос {}", request.getId());
 
         return RequestsMapper.toParticipationRequestDto(requestsRepository.save(request));
-    }
-
-
-    public Map<Long, Integer> getConfirmedRequests(Collection<Event> events) {
-        Collection<RequestInfo> requestInfoCollection = requestsRepository.getConfirmedRequests(
-                events.stream()
-                        .map(Event::getId)
-                        .collect(Collectors.toList())
-        );
-
-        Map<Long, Integer> confirmedRequests = new HashMap<>();
-
-        for (RequestInfo requestInfo : requestInfoCollection) {
-            confirmedRequests.put(requestInfo.getEventId(), requestInfo.getConfirmedRequestsCount().intValue());
-        }
-
-        log.info("Запрошено {} подтверждённых запросов", confirmedRequests.size());
-
-        return confirmedRequests;
-    }
-
-    public Collection<ParticipationRequestDto> getUserEventRequests(Long userId, Long eventId) {
-        checkUserExists(userId);
-        Event event = checkEventExists(eventId);
-
-        if (!event.getInitiator().getId().equals(userId)) {
-            throw new EditingErrorException("Пользователь " + userId + " не является владельцем события " + eventId);
-        }
-
-        Collection<Request> requests = requestsRepository.findAllByEventId(eventId);
-
-        log.info("Запрошено {} запросов", requests.size());
-
-        return requests.stream()
-                .map(RequestsMapper::toParticipationRequestDto)
-                .collect(Collectors.toList());
-    }
-
-    public EventRequestStatusUpdateResult updateUserEventRequest(Long userId, Long eventId,
-                                                                 EventRequestStatusUpdateRequest eventRequestStatusUpdateRequest) {
-        EventRequestStatusUpdateResult eventRequestStatusUpdateResult = new EventRequestStatusUpdateResult();
-        checkUserExists(userId);
-        Event event = checkEventExists(eventId);
-
-        if (!event.getInitiator().getId().equals(userId)) {
-            throw new EditingErrorException("Пользователь " + userId + " не является владельцем события " + eventId);
-        }
-
-        int confirmedRequests = getConfirmedRequests(List.of(event)).getOrDefault(eventId, 0) + 1;
-        if (event.getParticipantLimit() != 0 && confirmedRequests > event.getParticipantLimit()) {
-            throw new EditingErrorException("Превышено ограничение на количество участников в событии " + eventId);
-        }
-
-        Collection<Request> requests = requestsRepository.findAllByIdIn(eventRequestStatusUpdateRequest.getRequestIds());
-
-        for (Request request : requests) {
-            if (!RequestStatus.PENDING.equals(request.getStatus())) {
-                throw new EditingErrorException("Статус можно изменить только у заявок, находящихся в состоянии ожидания");
-            }
-
-            EventUpdateRequestStatus updateStatus = eventRequestStatusUpdateRequest.getStatus();
-            if (EventUpdateRequestStatus.CONFIRMED.equals(updateStatus)) {
-                request.setStatus(RequestStatus.CONFIRMED);
-                requestsRepository.save(request);
-                eventRequestStatusUpdateResult.getConfirmedRequests().add(RequestsMapper.toParticipationRequestDto(request));
-            }
-
-            if (EventUpdateRequestStatus.REJECTED.equals(updateStatus)) {
-                if (RequestStatus.CONFIRMED.equals(request.getStatus())) {
-                    throw new EditingErrorException("Нельзя отменить уже подтверждённый запрос.");
-                }
-                request.setStatus(RequestStatus.REJECTED);
-                requestsRepository.save(request);
-                eventRequestStatusUpdateResult.getRejectedRequests().add(RequestsMapper.toParticipationRequestDto(request));
-            }
-        }
-
-        log.info("Обновлен запрос {}", eventId);
-
-        return eventRequestStatusUpdateResult;
     }
 
     private User checkUserExists(Long userId) {

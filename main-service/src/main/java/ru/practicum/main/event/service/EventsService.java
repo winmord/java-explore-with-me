@@ -1,70 +1,70 @@
 package ru.practicum.main.event.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import ru.practicum.client.HitClient;
-import ru.practicum.common_dto.ViewStatsDto;
-import ru.practicum.main.admin.user.AdminUsersService;
 import ru.practicum.main.category.dto.CategoryDto;
 import ru.practicum.main.category.mapper.CategoryMapper;
 import ru.practicum.main.category.model.Category;
-import ru.practicum.main.category.service.CategoriesService;
+import ru.practicum.main.category.repository.CategoriesRepository;
 import ru.practicum.main.error.EditingErrorException;
 import ru.practicum.main.error.EntityNotFoundException;
-import ru.practicum.main.error.StatGettingException;
 import ru.practicum.main.event.dto.*;
 import ru.practicum.main.event.enums.AdminUpdateEventState;
 import ru.practicum.main.event.enums.EventState;
+import ru.practicum.main.event.enums.EventUpdateRequestStatus;
 import ru.practicum.main.event.enums.UserUpdateEventState;
 import ru.practicum.main.event.mapper.EventMapper;
+import ru.practicum.main.event.mapper.LocationMapper;
 import ru.practicum.main.event.model.Event;
 import ru.practicum.main.event.model.Location;
 import ru.practicum.main.event.repository.EventsRepository;
+import ru.practicum.main.event.repository.LocationsRepository;
 import ru.practicum.main.request.dto.ParticipationRequestDto;
-import ru.practicum.main.request.service.UserRequestsService;
+import ru.practicum.main.request.enums.RequestStatus;
+import ru.practicum.main.request.mapper.RequestsMapper;
+import ru.practicum.main.request.model.Request;
+import ru.practicum.main.request.repository.RequestsRepository;
+import ru.practicum.main.stat.StatService;
 import ru.practicum.main.user.dto.UserShortDto;
 import ru.practicum.main.user.event.EventRequestStatusUpdateRequest;
 import ru.practicum.main.user.event.EventRequestStatusUpdateResult;
 import ru.practicum.main.user.mapper.UserMapper;
 import ru.practicum.main.user.model.User;
+import ru.practicum.main.user.repository.UsersRepository;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.xml.bind.ValidationException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
 public class EventsService {
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     private final EventsRepository eventsRepository;
-    private final AdminUsersService adminUsersService;
-    private final CategoriesService categoriesService;
-    private final LocationsService locationsService;
-    private final UserRequestsService userRequestsService;
-    private final HitClient hitClient;
-
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final UsersRepository usersRepository;
+    private final CategoriesRepository categoriesRepository;
+    private final LocationsRepository locationsRepository;
+    private final RequestsRepository requestsRepository;
+    private final StatService statService;
 
     public EventsService(EventsRepository eventsRepository,
-                         AdminUsersService adminUsersService,
-                         CategoriesService categoriesService,
-                         LocationsService locationsService,
-                         UserRequestsService userRequestsService,
-                         HitClient hitClient) {
+                         UsersRepository usersRepository,
+                         CategoriesRepository categoriesRepository,
+                         LocationsRepository locationsRepository,
+                         RequestsRepository requestsRepository,
+                         StatService statService) {
         this.eventsRepository = eventsRepository;
-        this.adminUsersService = adminUsersService;
-        this.categoriesService = categoriesService;
-        this.locationsService = locationsService;
-        this.userRequestsService = userRequestsService;
-        this.hitClient = hitClient;
+        this.usersRepository = usersRepository;
+        this.categoriesRepository = categoriesRepository;
+        this.locationsRepository = locationsRepository;
+        this.requestsRepository = requestsRepository;
+        this.statService = statService;
     }
 
     public Collection<EventFullDto> getAdminEvents(Collection<Long> users,
@@ -82,8 +82,8 @@ public class EventsService {
 
         Collection<Event> events = eventsRepository.getEvents(users, states, categories, start, end, pageable).toList();
 
-        Map<Long, Integer> views = getViews(events);
-        Map<Long, Integer> confirmedRequests = userRequestsService.getConfirmedRequests(events);
+        Map<Long, Integer> views = statService.getViews(events);
+        Map<Long, Integer> confirmedRequests = statService.getConfirmedRequests(events);
 
         Collection<EventFullDto> eventFullDtos = new ArrayList<>();
 
@@ -107,8 +107,7 @@ public class EventsService {
     }
 
     public EventFullDto updateAdminEvent(Long eventId, UpdateEventAdminRequest updateEventAdminRequest) {
-        Event event = eventsRepository.findById(eventId)
-                .orElseThrow(() -> new EntityNotFoundException("Событие " + eventId + " не найдено"));
+        Event event = findEvent(eventId);
 
         LocalDateTime updatedEventDate = updateEventAdminRequest.getEventDate();
         if (updatedEventDate != null) {
@@ -142,7 +141,7 @@ public class EventsService {
         }
 
         if (updateEventAdminRequest.getCategory() != null) {
-            event.setCategory(categoriesService.getCategory(updateEventAdminRequest.getCategory()));
+            event.setCategory(getCategory(updateEventAdminRequest.getCategory()));
         }
 
         if (updateEventAdminRequest.getDescription() != null) {
@@ -151,8 +150,8 @@ public class EventsService {
 
         LocationDto updatedLocationDto = updateEventAdminRequest.getLocation();
         if (updatedLocationDto != null) {
-            Location updatedLocation = locationsService.getLocationByLatAndLon(updatedLocationDto)
-                    .orElse(locationsService.addLocation(updatedLocationDto));
+            Location updatedLocation = getLocationByLatAndLon(updatedLocationDto)
+                    .orElse(addLocation(updatedLocationDto));
             event.setLocation(updatedLocation);
         }
 
@@ -172,8 +171,8 @@ public class EventsService {
             event.setTitle(updateEventAdminRequest.getTitle());
         }
 
-        Map<Long, Integer> views = getViews(List.of(event));
-        Map<Long, Integer> confirmedRequests = userRequestsService.getConfirmedRequests(List.of(event));
+        Map<Long, Integer> views = statService.getViews(List.of(event));
+        Map<Long, Integer> confirmedRequests = statService.getConfirmedRequests(List.of(event));
         event = eventsRepository.save(event);
 
         log.info("Обновлено событие {}", eventId);
@@ -208,22 +207,21 @@ public class EventsService {
         if (text != null) text = text.toLowerCase();
         Collection<Event> events = eventsRepository.getEvents(text, categories, paid, onlyAvailable, start, end, pageable).toList();
 
-        hitClient.addHit(request);
+        statService.addHit(request);
 
         return getEventShortDtos(events);
     }
 
     public EventFullDto getEvent(Long id, HttpServletRequest request) {
-        Event event = eventsRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Событие " + id + " не найдено"));
+        Event event = findEvent(id);
 
         if (!EventState.PUBLISHED.equals(event.getState())) {
             throw new EntityNotFoundException("Событие " + id + " не опубликовано.");
         }
 
-        hitClient.addHit(request);
-        Map<Long, Integer> views = getViews(List.of(event));
-        Map<Long, Integer> confirmedRequests = userRequestsService.getConfirmedRequests(List.of(event));
+        statService.addHit(request);
+        Map<Long, Integer> views = statService.getViews(List.of(event));
+        Map<Long, Integer> confirmedRequests = statService.getConfirmedRequests(List.of(event));
 
         return EventMapper.toEventFullDto(
                 event,
@@ -233,7 +231,7 @@ public class EventsService {
     }
 
     public Collection<EventShortDto> getUserEvents(Long userId, Integer from, Integer size) {
-        adminUsersService.getUser(userId);
+        getUser(userId);
 
         Pageable pageable = PageRequest.of(from / size, size);
 
@@ -242,9 +240,9 @@ public class EventsService {
     }
 
     public Event addUserEvent(Long userId, NewEventDto newEventDto) {
-        User user = adminUsersService.getUser(userId);
-        Category category = categoriesService.getCategory(newEventDto.getCategory());
-        Location location = locationsService.addLocation(newEventDto.getLocation());
+        User user = getUser(userId);
+        Category category = getCategory(newEventDto.getCategory());
+        Location location = addLocation(newEventDto.getLocation());
 
         Event event = eventsRepository.save(EventMapper.toEvent(newEventDto, user, category, location));
         log.info("Сохранено событие {}", event.getId());
@@ -256,8 +254,8 @@ public class EventsService {
         Event event = eventsRepository.findByIdAndInitiatorId(eventId, userId)
                 .orElseThrow(() -> new EntityNotFoundException("Событие " + eventId + " не найдено."));
 
-        Map<Long, Integer> views = getViews(List.of(event));
-        Map<Long, Integer> confirmedRequests = userRequestsService.getConfirmedRequests(List.of(event));
+        Map<Long, Integer> views = statService.getViews(List.of(event));
+        Map<Long, Integer> confirmedRequests = statService.getConfirmedRequests(List.of(event));
 
         log.info("Запрошено событие {}", eventId);
 
@@ -269,7 +267,7 @@ public class EventsService {
     }
 
     public EventFullDto updateUserEvent(Long userId, Long eventId, UpdateEventUserRequest updateEventUserRequest) {
-        adminUsersService.getUser(userId);
+        getUser(userId);
 
         Event event = eventsRepository.findByIdAndInitiatorId(eventId, userId)
                 .orElseThrow(() -> new EntityNotFoundException("Событие " + eventId + " не найдено"));
@@ -303,7 +301,7 @@ public class EventsService {
         }
 
         if (updateEventUserRequest.getCategory() != null) {
-            event.setCategory(categoriesService.getCategory(updateEventUserRequest.getCategory()));
+            event.setCategory(getCategory(updateEventUserRequest.getCategory()));
         }
 
         if (updateEventUserRequest.getDescription() != null) {
@@ -312,8 +310,8 @@ public class EventsService {
 
         LocationDto updatedLocationDto = updateEventUserRequest.getLocation();
         if (updatedLocationDto != null) {
-            Location updatedLocation = locationsService.getLocationByLatAndLon(updatedLocationDto)
-                    .orElse(locationsService.addLocation(updatedLocationDto));
+            Location updatedLocation = getLocationByLatAndLon(updatedLocationDto)
+                    .orElse(addLocation(updatedLocationDto));
             event.setLocation(updatedLocation);
         }
 
@@ -333,8 +331,8 @@ public class EventsService {
             event.setTitle(updateEventUserRequest.getTitle());
         }
 
-        Map<Long, Integer> views = getViews(List.of(event));
-        Map<Long, Integer> confirmedRequests = userRequestsService.getConfirmedRequests(List.of(event));
+        Map<Long, Integer> views = statService.getViews(List.of(event));
+        Map<Long, Integer> confirmedRequests = statService.getConfirmedRequests(List.of(event));
         event = eventsRepository.save(event);
 
         log.info("Обновлено событие {}", eventId);
@@ -347,18 +345,72 @@ public class EventsService {
     }
 
     public Collection<ParticipationRequestDto> getUserEventRequests(Long userId, Long eventId) {
-        return userRequestsService.getUserEventRequests(userId, eventId);
+        getUser(userId);
+        Event event = eventsRepository.findById(eventId)
+                .orElseThrow(() -> new EntityNotFoundException("Событие " + eventId + " не найдено."));
+
+        if (!event.getInitiator().getId().equals(userId)) {
+            throw new EditingErrorException("Пользователь " + userId + " не является владельцем события " + eventId);
+        }
+
+        Collection<Request> requests = requestsRepository.findAllByEventId(eventId);
+
+        log.info("Запрошено {} запросов", requests.size());
+
+        return requests.stream()
+                .map(RequestsMapper::toParticipationRequestDto)
+                .collect(Collectors.toList());
     }
 
     public EventRequestStatusUpdateResult updateUserEventRequest(Long userId,
                                                                  Long eventId,
                                                                  EventRequestStatusUpdateRequest eventRequestStatusUpdateRequest) {
-        return userRequestsService.updateUserEventRequest(userId, eventId, eventRequestStatusUpdateRequest);
+        EventRequestStatusUpdateResult eventRequestStatusUpdateResult = new EventRequestStatusUpdateResult();
+        getUser(userId);
+        Event event = eventsRepository.findById(eventId)
+                .orElseThrow(() -> new EntityNotFoundException("Событие " + eventId + " не найдено."));
+
+        if (!event.getInitiator().getId().equals(userId)) {
+            throw new EditingErrorException("Пользователь " + userId + " не является владельцем события " + eventId);
+        }
+
+        int confirmedRequests = statService.getConfirmedRequests(List.of(event)).getOrDefault(eventId, 0) + 1;
+        if (event.getParticipantLimit() != 0 && confirmedRequests > event.getParticipantLimit()) {
+            throw new EditingErrorException("Превышено ограничение на количество участников в событии " + eventId);
+        }
+
+        Collection<Request> requests = requestsRepository.findAllByIdIn(eventRequestStatusUpdateRequest.getRequestIds());
+
+        for (Request request : requests) {
+            if (!RequestStatus.PENDING.equals(request.getStatus())) {
+                throw new EditingErrorException("Статус можно изменить только у заявок, находящихся в состоянии ожидания");
+            }
+
+            EventUpdateRequestStatus updateStatus = eventRequestStatusUpdateRequest.getStatus();
+            if (EventUpdateRequestStatus.CONFIRMED.equals(updateStatus)) {
+                request.setStatus(RequestStatus.CONFIRMED);
+                requestsRepository.save(request);
+                eventRequestStatusUpdateResult.getConfirmedRequests().add(RequestsMapper.toParticipationRequestDto(request));
+            }
+
+            if (EventUpdateRequestStatus.REJECTED.equals(updateStatus)) {
+                if (RequestStatus.CONFIRMED.equals(request.getStatus())) {
+                    throw new EditingErrorException("Нельзя отменить уже подтверждённый запрос.");
+                }
+                request.setStatus(RequestStatus.REJECTED);
+                requestsRepository.save(request);
+                eventRequestStatusUpdateResult.getRejectedRequests().add(RequestsMapper.toParticipationRequestDto(request));
+            }
+        }
+
+        log.info("Обновлен запрос {}", eventId);
+
+        return eventRequestStatusUpdateResult;
     }
 
     public Collection<EventShortDto> getEventShortDtos(Collection<Event> events) {
-        Map<Long, Integer> views = getViews(events);
-        Map<Long, Integer> confirmedRequests = userRequestsService.getConfirmedRequests(events);
+        Map<Long, Integer> views = statService.getViews(events);
+        Map<Long, Integer> confirmedRequests = statService.getConfirmedRequests(events);
 
         Collection<EventShortDto> eventShortDtos = new ArrayList<>();
 
@@ -381,48 +433,32 @@ public class EventsService {
         return eventShortDtos;
     }
 
-    private Map<Long, Integer> getViews(Collection<Event> events) {
-        Map<Long, Integer> views = new HashMap<>();
-
-        LocalDateTime start = LocalDateTime.now();
-        LocalDateTime end = LocalDateTime.now();
-        Collection<String> uris = new ArrayList<>();
-
-        for (Event event : events) {
-            LocalDateTime publishedOn = event.getPublishedOn();
-
-            if (publishedOn == null) continue;
-            if (publishedOn.isBefore(start)) start = publishedOn;
-            uris.add("/events/" + event.getId());
-        }
-
-        ResponseEntity<Object> response = hitClient.getViewStats(
-                start.format(FORMATTER),
-                end.format(FORMATTER),
-                uris,
-                true
-        );
-
-        try {
-            Collection<ViewStatsDto> viewStatsDtos = List.of(objectMapper.readValue(objectMapper.writeValueAsString(response.getBody()), ViewStatsDto[].class));
-
-            for (ViewStatsDto viewStatsDto : viewStatsDtos) {
-                String[] uriElements = viewStatsDto.getUri().split("/");
-
-                if (uriElements.length > 2) {
-                    views.put(Long.parseLong(uriElements[2]), viewStatsDto.getHits());
-                }
-            }
-
-            return views;
-        } catch (JsonProcessingException exception) {
-            throw new StatGettingException("Невозможно получить количество просмотров");
-        }
-    }
-
     private void checkDateValidity(LocalDateTime start, LocalDateTime end) throws ValidationException {
         if (start != null && end != null && start.isAfter(end)) {
             throw new ValidationException("Start must be before end");
         }
+    }
+
+    private User getUser(Long userId) {
+        return usersRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("Пользователь " + userId + " не найден."));
+    }
+
+    private Event findEvent(Long eventId) {
+        return eventsRepository.findById(eventId)
+                .orElseThrow(() -> new EntityNotFoundException("Событие " + eventId + " не найдено."));
+    }
+
+    private Category getCategory(Long catId) {
+        return categoriesRepository.findById(catId)
+                .orElseThrow(() -> new EntityNotFoundException("Категория " + catId + " не найдена"));
+    }
+
+    private Optional<Location> getLocationByLatAndLon(LocationDto locationDto) {
+        return locationsRepository.findByLatAndLon(locationDto.getLat(), locationDto.getLon());
+    }
+
+    private Location addLocation(LocationDto locationDto) {
+        return locationsRepository.save(LocationMapper.toLocation(locationDto));
     }
 }
