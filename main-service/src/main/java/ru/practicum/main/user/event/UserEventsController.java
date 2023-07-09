@@ -11,6 +11,8 @@ import ru.practicum.main.event.mapper.EventMapper;
 import ru.practicum.main.event.service.EventsService;
 import ru.practicum.main.request.dto.ParticipationRequestDto;
 
+import javax.validation.constraints.Positive;
+import javax.validation.constraints.PositiveOrZero;
 import java.util.Collection;
 
 @RestController
@@ -24,8 +26,8 @@ public class UserEventsController {
 
     @GetMapping
     public Collection<EventShortDto> getUserEvents(@PathVariable Long userId,
-                                                   @RequestParam(defaultValue = "0") Integer from,
-                                                   @RequestParam(defaultValue = "10") Integer size) {
+                                                   @RequestParam(defaultValue = "0") @PositiveOrZero Integer from,
+                                                   @RequestParam(defaultValue = "10") @Positive Integer size) {
         return eventsService.getUserEvents(userId, from, size);
     }
 

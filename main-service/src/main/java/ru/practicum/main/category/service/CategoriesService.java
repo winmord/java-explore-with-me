@@ -9,7 +9,6 @@ import ru.practicum.main.category.mapper.CategoryMapper;
 import ru.practicum.main.category.model.Category;
 import ru.practicum.main.category.repository.CategoriesRepository;
 import ru.practicum.main.error.EntityNotFoundException;
-import ru.practicum.main.validation.PagingParametersChecker;
 
 import java.util.Collection;
 import java.util.stream.Collectors;
@@ -24,7 +23,6 @@ public class CategoriesService {
     }
 
     public Collection<CategoryDto> getCategories(Integer from, Integer size) {
-        PagingParametersChecker.check(from, size);
         Pageable pageable = PageRequest.of(from / size, size);
 
         Collection<CategoryDto> categoryDtos = categoriesRepository.findAll(pageable)

@@ -4,6 +4,8 @@ import org.springframework.web.bind.annotation.*;
 import ru.practicum.main.compilation.service.CompilationsService;
 import ru.practicum.main.compilation.dto.CompilationDto;
 
+import javax.validation.constraints.Positive;
+import javax.validation.constraints.PositiveOrZero;
 import java.util.Collection;
 
 @RestController
@@ -17,8 +19,8 @@ public class CompilationsController {
 
     @GetMapping
     public Collection<CompilationDto> getCompilations(@RequestParam(defaultValue = "false") Boolean pinned,
-                                                      @RequestParam(defaultValue = "0") Integer from,
-                                                      @RequestParam(defaultValue = "10") Integer size) {
+                                                      @RequestParam(defaultValue = "0") @PositiveOrZero Integer from,
+                                                      @RequestParam(defaultValue = "10") @Positive Integer size) {
         return compilationsService.getCompilations(pinned, from, size);
     }
 

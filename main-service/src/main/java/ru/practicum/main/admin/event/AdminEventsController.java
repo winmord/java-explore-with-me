@@ -8,6 +8,8 @@ import ru.practicum.main.event.dto.UpdateEventAdminRequest;
 import ru.practicum.main.event.enums.EventState;
 import ru.practicum.main.event.service.EventsService;
 
+import javax.validation.constraints.Positive;
+import javax.validation.constraints.PositiveOrZero;
 import javax.xml.bind.ValidationException;
 import java.util.Collection;
 
@@ -27,8 +29,8 @@ public class AdminEventsController {
                                               @RequestParam(required = false) Collection<Long> categories,
                                               @RequestParam(required = false) String rangeStart,
                                               @RequestParam(required = false) String rangeEnd,
-                                              @RequestParam(defaultValue = "0") Integer from,
-                                              @RequestParam(defaultValue = "10") Integer size) throws ValidationException {
+                                              @RequestParam(defaultValue = "0") @PositiveOrZero Integer from,
+                                              @RequestParam(defaultValue = "10") @Positive Integer size) throws ValidationException {
         return eventsService.getAdminEvents(users, states, categories, rangeStart, rangeEnd, from, size);
     }
 

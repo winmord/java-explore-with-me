@@ -14,7 +14,6 @@ import ru.practicum.main.error.EntityNotFoundException;
 import ru.practicum.main.event.model.Event;
 import ru.practicum.main.event.repository.EventsRepository;
 import ru.practicum.main.event.service.EventsService;
-import ru.practicum.main.validation.PagingParametersChecker;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -75,7 +74,6 @@ public class CompilationsService {
     }
 
     public Collection<CompilationDto> getCompilations(Boolean pinned, Integer from, Integer size) {
-        PagingParametersChecker.check(from, size);
         Pageable pageable = PageRequest.of(from / size, size);
 
         Collection<Compilation> compilations = compilationsRepository.findAllByPinned(pinned, pageable).toList();

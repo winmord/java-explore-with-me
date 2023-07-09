@@ -10,7 +10,6 @@ import ru.practicum.main.user.dto.UserDto;
 import ru.practicum.main.user.mapper.UserMapper;
 import ru.practicum.main.user.model.User;
 import ru.practicum.main.user.repository.UsersRepository;
-import ru.practicum.main.validation.PagingParametersChecker;
 
 import java.util.Collection;
 import java.util.stream.Collectors;
@@ -25,7 +24,6 @@ public class AdminUsersService {
     }
 
     public Collection<UserDto> getUsers(Collection<Long> ids, Integer from, Integer size) {
-        PagingParametersChecker.check(from, size);
         Pageable pageable = PageRequest.of(from / size, size);
 
         Collection<User> users = usersRepository.getUsers(ids, pageable).toList();

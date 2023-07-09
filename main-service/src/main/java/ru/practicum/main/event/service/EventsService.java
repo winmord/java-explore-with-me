@@ -17,6 +17,7 @@ import ru.practicum.main.category.model.Category;
 import ru.practicum.main.category.service.CategoriesService;
 import ru.practicum.main.error.EditingErrorException;
 import ru.practicum.main.error.EntityNotFoundException;
+import ru.practicum.main.error.StatGettingException;
 import ru.practicum.main.event.dto.*;
 import ru.practicum.main.event.enums.AdminUpdateEventState;
 import ru.practicum.main.event.enums.EventState;
@@ -32,7 +33,6 @@ import ru.practicum.main.user.event.EventRequestStatusUpdateRequest;
 import ru.practicum.main.user.event.EventRequestStatusUpdateResult;
 import ru.practicum.main.user.mapper.UserMapper;
 import ru.practicum.main.user.model.User;
-import ru.practicum.main.validation.PagingParametersChecker;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.xml.bind.ValidationException;
@@ -78,7 +78,6 @@ public class EventsService {
         LocalDateTime end = rangeEnd == null ? null : LocalDateTime.parse(rangeEnd, FORMATTER);
         checkDateValidity(start, end);
 
-        PagingParametersChecker.check(from, size);
         Pageable pageable = PageRequest.of(from / size, size);
 
         Collection<Event> events = eventsRepository.getEvents(users, states, categories, start, end, pageable).toList();
@@ -200,9 +199,11 @@ public class EventsService {
         LocalDateTime end = rangeEnd == null ? null : LocalDateTime.parse(rangeEnd, FORMATTER);
         checkDateValidity(start, end);
 
-        PagingParametersChecker.check(from, size);
+
+        if (sort == null) sort = "id";
         if ("EVENT_DATE".equals(sort)) sort = "eventDate";
-        Pageable pageable = sort == null ? PageRequest.of(from / size, size) : PageRequest.of(from / size, size, Sort.by(sort).descending());
+
+        Pageable pageable = PageRequest.of(from / size, size, Sort.by(sort).descending());
 
         if (text != null) text = text.toLowerCase();
         Collection<Event> events = eventsRepository.getEvents(text, categories, paid, onlyAvailable, start, end, pageable).toList();
@@ -234,7 +235,6 @@ public class EventsService {
     public Collection<EventShortDto> getUserEvents(Long userId, Integer from, Integer size) {
         adminUsersService.getUser(userId);
 
-        PagingParametersChecker.check(from, size);
         Pageable pageable = PageRequest.of(from / size, size);
 
         Collection<Event> events = eventsRepository.findAllByInitiatorId(userId, pageable).toList();
@@ -407,13 +407,16 @@ public class EventsService {
             Collection<ViewStatsDto> viewStatsDtos = List.of(objectMapper.readValue(objectMapper.writeValueAsString(response.getBody()), ViewStatsDto[].class));
 
             for (ViewStatsDto viewStatsDto : viewStatsDtos) {
-                Long id = Long.parseLong(viewStatsDto.getUri().split("/")[2]);
-                views.put(id, viewStatsDto.getHits());
+                String[] uriElements = viewStatsDto.getUri().split("/");
+
+                if (uriElements.length > 2) {
+                    views.put(Long.parseLong(uriElements[2]), viewStatsDto.getHits());
+                }
             }
 
             return views;
-        } catch (JsonProcessingException ignored) {
-            return views;
+        } catch (JsonProcessingException exception) {
+            throw new StatGettingException("Невозможно получить количество просмотров");
         }
     }
 
