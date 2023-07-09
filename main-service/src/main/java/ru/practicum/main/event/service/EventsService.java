@@ -22,6 +22,11 @@ import ru.practicum.main.event.model.Event;
 import ru.practicum.main.event.model.Location;
 import ru.practicum.main.event.repository.EventsRepository;
 import ru.practicum.main.event.repository.LocationsRepository;
+import ru.practicum.main.rating.dto.RatingDto;
+import ru.practicum.main.rating.enums.RatingState;
+import ru.practicum.main.rating.mapper.RatingsMapper;
+import ru.practicum.main.rating.model.Rating;
+import ru.practicum.main.rating.repository.RatingsRepository;
 import ru.practicum.main.request.dto.ParticipationRequestDto;
 import ru.practicum.main.request.enums.RequestStatus;
 import ru.practicum.main.request.mapper.RequestsMapper;
@@ -51,6 +56,7 @@ public class EventsService {
     private final CategoriesRepository categoriesRepository;
     private final LocationsRepository locationsRepository;
     private final RequestsRepository requestsRepository;
+    private final RatingsRepository ratingsRepository;
     private final StatService statService;
 
     public EventsService(EventsRepository eventsRepository,
@@ -58,12 +64,13 @@ public class EventsService {
                          CategoriesRepository categoriesRepository,
                          LocationsRepository locationsRepository,
                          RequestsRepository requestsRepository,
-                         StatService statService) {
+                         RatingsRepository ratingsRepository, StatService statService) {
         this.eventsRepository = eventsRepository;
         this.usersRepository = usersRepository;
         this.categoriesRepository = categoriesRepository;
         this.locationsRepository = locationsRepository;
         this.requestsRepository = requestsRepository;
+        this.ratingsRepository = ratingsRepository;
         this.statService = statService;
     }
 
@@ -90,10 +97,13 @@ public class EventsService {
         for (Event event : events) {
             int viewsCount = views.getOrDefault(event.getId(), 0);
             int confirmedRequestsCount = confirmedRequests.getOrDefault(event.getId(), 0);
+            Integer ratingScore = getRatingScore(event.getId());
+
             EventFullDto eventFullDto = EventMapper.toEventFullDto(
                     event,
                     viewsCount,
-                    confirmedRequestsCount
+                    confirmedRequestsCount,
+                    ratingScore
             );
 
             if (eventFullDto != null) {
@@ -173,6 +183,8 @@ public class EventsService {
 
         Map<Long, Integer> views = statService.getViews(List.of(event));
         Map<Long, Integer> confirmedRequests = statService.getConfirmedRequests(List.of(event));
+        Integer ratingScore = getRatingScore(event.getId());
+
         event = eventsRepository.save(event);
 
         log.info("Обновлено событие {}", eventId);
@@ -180,7 +192,8 @@ public class EventsService {
         return EventMapper.toEventFullDto(
                 event,
                 views.get(event.getId()),
-                confirmedRequests.get(event.getId())
+                confirmedRequests.get(event.getId()),
+                ratingScore
         );
     }
 
@@ -222,11 +235,13 @@ public class EventsService {
         statService.addHit(request);
         Map<Long, Integer> views = statService.getViews(List.of(event));
         Map<Long, Integer> confirmedRequests = statService.getConfirmedRequests(List.of(event));
+        Integer ratingScore = getRatingScore(event.getId());
 
         return EventMapper.toEventFullDto(
                 event,
                 views.get(event.getId()),
-                confirmedRequests.get(event.getId())
+                confirmedRequests.get(event.getId()),
+                ratingScore
         );
     }
 
@@ -256,13 +271,15 @@ public class EventsService {
 
         Map<Long, Integer> views = statService.getViews(List.of(event));
         Map<Long, Integer> confirmedRequests = statService.getConfirmedRequests(List.of(event));
+        Integer ratingScore = getRatingScore(event.getId());
 
         log.info("Запрошено событие {}", eventId);
 
         return EventMapper.toEventFullDto(
                 event,
                 views.get(event.getId()),
-                confirmedRequests.get(event.getId())
+                confirmedRequests.get(event.getId()),
+                ratingScore
         );
     }
 
@@ -333,6 +350,8 @@ public class EventsService {
 
         Map<Long, Integer> views = statService.getViews(List.of(event));
         Map<Long, Integer> confirmedRequests = statService.getConfirmedRequests(List.of(event));
+        Integer ratingScore = getRatingScore(event.getId());
+
         event = eventsRepository.save(event);
 
         log.info("Обновлено событие {}", eventId);
@@ -340,7 +359,8 @@ public class EventsService {
         return EventMapper.toEventFullDto(
                 event,
                 views.get(event.getId()),
-                confirmedRequests.get(event.getId())
+                confirmedRequests.get(event.getId()),
+                ratingScore
         );
     }
 
@@ -408,6 +428,39 @@ public class EventsService {
         return eventRequestStatusUpdateResult;
     }
 
+    public RatingDto addEventRating(Long userId, Long eventId, RatingState state) throws ValidationException {
+        getUser(userId);
+        Event event = findEvent(eventId);
+
+        if (!EventState.PUBLISHED.equals(event.getState())) {
+            throw new ValidationException("Событие должно быть опубликовано, чтобы его можно было оценить.");
+        }
+
+        if (requestsRepository.findByRequesterIdAndEventIdAndStatus(userId, eventId, RequestStatus.CONFIRMED).isEmpty()) {
+            throw new EntityNotFoundException("Подтверждённый Запрос от пользователя " + userId + " на участие в событии " + eventId + " не найден.");
+        }
+
+        Rating rating = ratingsRepository.findByUserIdAndEventId(userId, eventId)
+                .orElse(Rating.builder().userId(userId).eventId(eventId).build());
+        rating.setState(state);
+
+        log.info("Добалена оценка {} событию {} от пользователя {}.", state, eventId, userId);
+
+        return RatingsMapper.toRatingDto(ratingsRepository.save(rating));
+    }
+
+    public void deleteEventRating(Long userId, Long eventId) {
+        Optional<Rating> rating = ratingsRepository.findByUserIdAndEventId(userId, eventId);
+
+        if (rating.isEmpty()) {
+            throw new EntityNotFoundException("Пользователь " + userId + " не оценивал событие " + eventId);
+        }
+
+        log.info("Удалена оценка события {} от пользователя {}.", eventId, userId);
+
+        ratingsRepository.deleteById(rating.get().getId());
+    }
+
     public Collection<EventShortDto> getEventShortDtos(Collection<Event> events) {
         Map<Long, Integer> views = statService.getViews(events);
         Map<Long, Integer> confirmedRequests = statService.getConfirmedRequests(events);
@@ -460,5 +513,23 @@ public class EventsService {
 
     private Location addLocation(LocationDto locationDto) {
         return locationsRepository.save(LocationMapper.toLocation(locationDto));
+    }
+
+    public Integer getRatingScore(Long eventId) {
+        Integer ratingScore = 0;
+        Collection<Rating> ratings = ratingsRepository.findAllByEventId(eventId);
+
+        for (Rating rating : ratings) {
+            switch (rating.getState()) {
+                case LIKE:
+                    ++ratingScore;
+                    break;
+                case DISLIKE:
+                    --ratingScore;
+                    break;
+            }
+        }
+
+        return ratingScore;
     }
 }
