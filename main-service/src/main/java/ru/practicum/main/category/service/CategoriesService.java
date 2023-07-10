@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.main.category.dto.CategoryDto;
 import ru.practicum.main.category.mapper.CategoryMapper;
 import ru.practicum.main.category.model.Category;
@@ -22,6 +23,7 @@ public class CategoriesService {
         this.categoriesRepository = categoriesRepository;
     }
 
+    @Transactional
     public Collection<CategoryDto> getCategories(Integer from, Integer size) {
         Pageable pageable = PageRequest.of(from / size, size);
 
@@ -34,6 +36,7 @@ public class CategoriesService {
         return categoryDtos;
     }
 
+    @Transactional
     public Category getCategory(Long catId) {
         Category category = categoriesRepository.findById(catId)
                 .orElseThrow(() -> new EntityNotFoundException("Категория " + catId + " не найдена"));

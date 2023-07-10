@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.main.compilation.dto.NewCompilationDto;
 import ru.practicum.main.compilation.dto.CompilationDto;
 import ru.practicum.main.compilation.dto.UpdateCompilationRequest;
@@ -31,6 +32,7 @@ public class CompilationsService {
         this.eventsService = eventsService;
     }
 
+    @Transactional
     public CompilationDto createCompilation(NewCompilationDto newCompilationDto) {
         Collection<Event> events = eventsRepository.findAllById(newCompilationDto.getEvents());
         Compilation compilation = compilationsRepository.save(CompilationsMapper.toCompilation(newCompilationDto, events));
@@ -40,6 +42,7 @@ public class CompilationsService {
         return CompilationsMapper.toCompilationDto(compilation, eventsService.getEventShortDtos(events));
     }
 
+    @Transactional
     public void deleteCompilation(Long compId) {
         if (compilationsRepository.findById(compId).isEmpty()) {
             throw new EntityNotFoundException("Подборка " + compId + "не найдена");
@@ -49,6 +52,7 @@ public class CompilationsService {
         log.info("Удалена подборка {}", compId);
     }
 
+    @Transactional
     public CompilationDto updateCompilation(Long compId, UpdateCompilationRequest updateCompilationRequest) {
         Compilation compilation = compilationsRepository.findById(compId)
                 .orElseThrow(() -> new EntityNotFoundException("Подборка " + compId + " не найдена."));
@@ -73,6 +77,7 @@ public class CompilationsService {
                 eventsService.getEventShortDtos(updatedCompilation.getEvents()));
     }
 
+    @Transactional
     public Collection<CompilationDto> getCompilations(Boolean pinned, Integer from, Integer size) {
         Pageable pageable = PageRequest.of(from / size, size);
 
@@ -89,6 +94,7 @@ public class CompilationsService {
         return compilationDtos;
     }
 
+    @Transactional
     public CompilationDto getCompilation(Long compId) {
         Compilation compilation = compilationsRepository.findById(compId)
                 .orElseThrow(() -> new EntityNotFoundException("Подборка " + compId + " не найдена."));

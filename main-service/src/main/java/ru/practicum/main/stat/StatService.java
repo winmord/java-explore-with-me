@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.client.HitClient;
 import ru.practicum.common_dto.ViewStatsDto;
 import ru.practicum.main.error.StatGettingException;
@@ -32,6 +33,7 @@ public class StatService {
         this.hitClient = hitClient;
     }
 
+    @Transactional
     public Map<Long, Integer> getConfirmedRequests(Collection<Event> events) {
         Collection<RequestInfo> requestInfoCollection = requestsRepository.getConfirmedRequests(
                 events.stream()
