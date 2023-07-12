@@ -16,6 +16,7 @@ import java.util.stream.Collectors;
 
 @Service
 @Slf4j
+@Transactional(readOnly = true)
 public class CategoriesService {
     private final CategoriesRepository categoriesRepository;
 
@@ -23,7 +24,6 @@ public class CategoriesService {
         this.categoriesRepository = categoriesRepository;
     }
 
-    @Transactional
     public Collection<CategoryDto> getCategories(Integer from, Integer size) {
         Pageable pageable = PageRequest.of(from / size, size);
 
@@ -36,7 +36,6 @@ public class CategoriesService {
         return categoryDtos;
     }
 
-    @Transactional
     public Category getCategory(Long catId) {
         Category category = categoriesRepository.findById(catId)
                 .orElseThrow(() -> new EntityNotFoundException("Категория " + catId + " не найдена"));

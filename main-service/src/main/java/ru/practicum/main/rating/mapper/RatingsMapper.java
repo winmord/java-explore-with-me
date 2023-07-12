@@ -1,6 +1,7 @@
 package ru.practicum.main.rating.mapper;
 
 import ru.practicum.main.rating.dto.RatingDto;
+import ru.practicum.main.rating.enums.RatingState;
 import ru.practicum.main.rating.model.Rating;
 
 public class RatingsMapper {
@@ -13,7 +14,7 @@ public class RatingsMapper {
                 .id(rating.getId())
                 .userId(rating.getUserId())
                 .eventId(rating.getEventId())
-                .state(rating.getState())
+                .state(rating.getState() == 1 ? RatingState.LIKE : RatingState.DISLIKE)
                 .build();
     }
 }

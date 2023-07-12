@@ -50,6 +50,7 @@ import java.util.stream.Collectors;
 
 @Service
 @Slf4j
+@Transactional(readOnly = true)
 public class EventsService {
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     private final EventsRepository eventsRepository;
@@ -75,7 +76,6 @@ public class EventsService {
         this.statService = statService;
     }
 
-    @Transactional
     public Collection<EventFullDto> getAdminEvents(Collection<Long> users,
                                                    Collection<EventState> states,
                                                    Collection<Long> categories,
@@ -201,7 +201,6 @@ public class EventsService {
         );
     }
 
-    @Transactional
     public Collection<EventShortDto> getEvents(String text,
                                                Collection<Long> categories,
                                                Boolean paid,
@@ -230,7 +229,6 @@ public class EventsService {
         return getEventShortDtos(events);
     }
 
-    @Transactional
     public EventFullDto getEvent(Long id, HttpServletRequest request) {
         Event event = findEvent(id);
 
@@ -251,7 +249,6 @@ public class EventsService {
         );
     }
 
-    @Transactional
     public Collection<EventShortDto> getUserEvents(Long userId, Integer from, Integer size) {
         getUser(userId);
 
@@ -273,7 +270,6 @@ public class EventsService {
         return event;
     }
 
-    @Transactional
     public EventFullDto getUserEvent(Long userId, Long eventId) {
         Event event = eventsRepository.findByIdAndInitiatorId(eventId, userId)
                 .orElseThrow(() -> new EntityNotFoundException("Событие " + eventId + " не найдено."));
@@ -374,7 +370,6 @@ public class EventsService {
         );
     }
 
-    @Transactional
     public Collection<ParticipationRequestDto> getUserEventRequests(Long userId, Long eventId) {
         getUser(userId);
         Event event = eventsRepository.findById(eventId)
@@ -459,7 +454,7 @@ public class EventsService {
 
         Rating rating = ratingsRepository.findByUserIdAndEventId(userId, eventId)
                 .orElse(Rating.builder().userId(userId).eventId(eventId).build());
-        rating.setState(state);
+        rating.setState(state == RatingState.LIKE ? 1L : -1L);
 
         log.info("Добалена оценка {} событию {} от пользователя {}.", state, eventId, userId);
 
@@ -479,7 +474,6 @@ public class EventsService {
         ratingsRepository.deleteById(rating.get().getId());
     }
 
-    @Transactional
     public Collection<EventShortDto> getEventShortDtos(Collection<Event> events) {
         Map<Long, Integer> views = statService.getViews(events);
         Map<Long, Integer> confirmedRequests = statService.getConfirmedRequests(events);
@@ -537,15 +531,12 @@ public class EventsService {
     private Map<Long, Integer> getAllRatingScore(Collection<Event> events) {
         Map<Long, Integer> ratingScores = new HashMap<>();
 
-        Collection<Rating> ratings = ratingsRepository.findAllByEventIdIn(events.stream()
+        Collection<EventRatingDto> eventRatingDtos = ratingsRepository.getAllEventsRating(events.stream()
                 .map(Event::getId)
                 .collect(Collectors.toList()));
 
-        for (Rating rating : ratings) {
-            int ratingValue = 0;
-            if (RatingState.LIKE.equals(rating.getState())) ratingValue = 1;
-            if (RatingState.DISLIKE.equals(rating.getState())) ratingValue = -1;
-            ratingScores.put(rating.getEventId(), ratingScores.getOrDefault(rating.getEventId(), 0) + ratingValue);
+        for (EventRatingDto eventRatingDto : eventRatingDtos) {
+            ratingScores.put(eventRatingDto.getId(), eventRatingDto.getRating().intValue());
         }
 
         return ratingScores;

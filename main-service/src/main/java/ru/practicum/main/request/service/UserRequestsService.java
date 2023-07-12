@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 
 @Service
 @Slf4j
+@Transactional(readOnly = true)
 public class UserRequestsService {
     private final RequestsRepository requestsRepository;
     private final UsersRepository usersRepository;
@@ -39,7 +40,6 @@ public class UserRequestsService {
         this.statService = statService;
     }
 
-    @Transactional
     public Collection<ParticipationRequestDto> getRequests(Long userId) {
         Collection<Request> requests = requestsRepository.findAllByRequesterId(userId);
         log.info("Запрошено {} запросов", requests.size());

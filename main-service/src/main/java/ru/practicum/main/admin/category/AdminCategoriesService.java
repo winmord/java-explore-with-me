@@ -13,6 +13,7 @@ import ru.practicum.main.event.repository.EventsRepository;
 
 @Service
 @Slf4j
+@Transactional(readOnly = true)
 public class AdminCategoriesService {
     private final CategoriesRepository categoriesRepository;
     private final EventsRepository eventsRepository;

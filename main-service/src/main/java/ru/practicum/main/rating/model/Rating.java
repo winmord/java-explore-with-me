@@ -1,7 +1,6 @@
 package ru.practicum.main.rating.model;
 
 import lombok.*;
-import ru.practicum.main.rating.enums.RatingState;
 
 import javax.persistence.*;
 
@@ -23,7 +22,6 @@ public class Rating {
     @Column(name = "EVENT_ID")
     private Long eventId;
 
-    @Enumerated(EnumType.STRING)
     @Column(name = "STATE")
-    private RatingState state;
+    private Long state;
 }

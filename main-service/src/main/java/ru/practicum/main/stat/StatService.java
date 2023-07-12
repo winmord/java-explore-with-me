@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 
 @Service
 @Slf4j
+@Transactional(readOnly = true)
 public class StatService {
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     private final RequestsRepository requestsRepository;
@@ -33,7 +34,6 @@ public class StatService {
         this.hitClient = hitClient;
     }
 
-    @Transactional
     public Map<Long, Integer> getConfirmedRequests(Collection<Event> events) {
         Collection<RequestInfo> requestInfoCollection = requestsRepository.getConfirmedRequests(
                 events.stream()

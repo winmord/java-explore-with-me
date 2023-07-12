@@ -21,6 +21,7 @@ import java.util.Collection;
 
 @Service
 @Slf4j
+@Transactional(readOnly = true)
 public class CompilationsService {
     private final CompilationsRepository compilationsRepository;
     private final EventsRepository eventsRepository;
@@ -77,7 +78,6 @@ public class CompilationsService {
                 eventsService.getEventShortDtos(updatedCompilation.getEvents()));
     }
 
-    @Transactional
     public Collection<CompilationDto> getCompilations(Boolean pinned, Integer from, Integer size) {
         Pageable pageable = PageRequest.of(from / size, size);
 
@@ -94,7 +94,6 @@ public class CompilationsService {
         return compilationDtos;
     }
 
-    @Transactional
     public CompilationDto getCompilation(Long compId) {
         Compilation compilation = compilationsRepository.findById(compId)
                 .orElseThrow(() -> new EntityNotFoundException("Подборка " + compId + " не найдена."));
